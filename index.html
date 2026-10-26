@@ -123,13 +123,17 @@ dialog::backdrop{background:rgba(5,9,18,.75)}
 .hb ul,.hb ol{padding-left:20px;margin:4px 0}
 .hb kbd{background:var(--abyss);border:1px solid var(--line);border-radius:4px;padding:1px 6px;font:inherit}
 .hb a{color:var(--iss)}
+.keyrow{display:flex;flex-direction:column;gap:4px}
+.keyrow label{width:100%}
+.keyrow input{flex:1;min-width:0;width:auto}
+.keyrow a{color:var(--iss)}
 </style>
 </head>
 <body>
 <div class="app">
   <header>
     <h1>Earth <span>to</span> MIDI</h1>
-    <p class="abs"><span>Earth and space data for live events.</span><span>Real-time quakes, weather, the ISS, solar activity, asteroids and more, turned into MIDI notes and controller CC data. Perfect for installations, live generated-art, or just for inspiration.</span></p>
+    <p class="abs"><span>Earth and space data for live events.</span><span>Real-time quakes, weather, the ISS, solar activity and asteroids, turned into MIDI notes and controllers for your DAW, lights or show control.</span></p>
     <button id="btn-help" aria-haspopup="dialog">Help</button>
   </header>
 
@@ -234,41 +238,63 @@ dialog::backdrop{background:rgba(5,9,18,.75)}
     </ol>
     <p>With no port selected the page runs in preview mode: the map, log and monitor still work.</p>
 
+    <h3>Earth and Space tabs</h3>
+    <p>The filled, highlighted tab (green for Earth, violet for Space) is the one you are looking at. The tabs only change what you see: every module keeps running and sending MIDI whichever tab is open. Use the On switch on a card to mute a module.</p>
+    <ul>
+      <li><b>Earth:</b> earthquakes, natural events, weather chimes.</li>
+      <li><b>Space:</b> space station, space weather, asteroids, solar flares and CMEs.</li>
+    </ul>
+
     <h3>Channels</h3>
     <p>1 Earthquakes, 2 Space station, 3 Space weather, 4 Natural events, 5 Weather, 6 Asteroids, 7 Solar flares and CMEs. Change any of them with the Note channel menu on its card. The test chord plays on the earthquake channel.</p>
-
-    <h3>Earth and Space tabs</h3>
-    <p>The tabs only change what you see. Every module keeps running and sending MIDI whichever tab is open. Use the On switch on a card to mute a module.</p>
 
     <h3>Module cards</h3>
     <ul>
       <li><b>Loops:</b> quakes (last 24 hours), solar wind (last 2 hours), asteroids (next 7 days) and flares (last 7 days) replay as loops over the length you choose, so there is always something playing.</li>
-      <li><b>Note output:</b> pick the data that drives pitch, velocity, length and pan, set the octave range, or turn notes off to use a module for controllers only.</li>
-      <li><b>Only play when:</b> a filter, for example only quakes in the top 40% of magnitude.</li>
+      <li><b>Note output:</b> pick the data that drives pitch, velocity, length and pan, set the octave range, or turn notes off to use a module for controllers only. Pan is sent as CC10 just before each note.</li>
+      <li><b>Only play when:</b> a filter, for example only quakes in the top 40% of magnitude. On solar flares, use it on “kind” to isolate flares (0%) or CMEs (100%).</li>
+      <li><b>Musical settings</b> (side panel): key, scale, lowest octave and overall note length for every module.</li>
     </ul>
 
     <h3>Controller mapping</h3>
-    <p>Every data stream can be sent as CC, pitch bend or aftertouch, on its own channel and CC number. <b>Range %</b> zooms in on the part of the data you care about and stretches it to 0 to 127. <b>Invert</b> flips it and <b>Smooth</b> slows the changes. Your setup saves automatically. Use Export and Import to move it between machines, and Reset to go back to the defaults.</p>
+    <p>Every data stream can be sent as CC, pitch bend or aftertouch, on its own channel and CC number. <b>Range %</b> zooms in on the part of the data you care about and stretches it to 0 to 127. <b>Invert</b> flips it and <b>Smooth</b> slows the changes. A live bar shows each stream’s output. Your setup saves automatically. Use Export and Import to move it between machines, and Reset to go back to the defaults.</p>
+
+    <h3>Default controller numbers</h3>
+    <ul>
+      <li><b>Earthquakes (ch 1):</b> CC20 latest magnitude, CC21 quakes in the last hour.</li>
+      <li><b>Space station (ch 2):</b> CC20 latitude, CC21 longitude, CC22 altitude, CC23 daylight.</li>
+      <li><b>Space weather (ch 3):</b> CC30 Kp index, CC31 solar wind speed, CC32 magnetic Bz, CC33 density, CC34 total field, CC35 moon phase, CC36 subsolar longitude (Earth’s rotation), CC37 subsolar latitude (the season), CC38 moon illumination, CC39 sublunar longitude.</li>
+      <li><b>Natural events (ch 4):</b> CC40 wildfires, CC41 volcanoes, CC42 storms, CC43 all open events.</li>
+      <li><b>Weather (ch 5):</b> CC50 to 57 temperature, CC60 to 67 wind, CC70 to 77 pressure, for Reykjavík, London, New York, São Paulo, Cape Town, Mumbai, Tokyo and Sydney in that order.</li>
+      <li><b>Asteroids (ch 6):</b> CC80 next approach closeness, CC81 approaches this week, CC82 hazardous count, CC83 largest size.</li>
+      <li><b>Solar flares and CMEs (ch 7):</b> CC90 flares this week, CC91 strongest flare, CC92 CMEs, CC93 fastest CME.</li>
+    </ul>
+
+    <h3>MIDI monitor</h3>
+    <p>The monitor in the side panel shows the latest messages as they are sent, with what triggered each one: for example a wildfire, a quake and its location, a city’s weather, an asteroid or a flare class. Controller lines show the module and stream. It also works in preview mode with no port selected.</p>
 
     <h3>The map</h3>
     <ul>
-      <li>Click any dot, the ISS, the sun or the moon for details. Quakes, events and cities have a button to play just that item.</li>
-      <li>Use <b>Layers</b> to show or hide coastlines, day and night, the ISS ground track, the moon and more.</li>
-      <li>Press <kbd>F</kbd> or use Full screen for a clean display with a live monitor and log.</li>
+      <li><b>Click</b> any dot, the ISS, the sun or the moon for details. Quakes, events and cities have a button to play just that item.</li>
+      <li><b>ISS ground track:</b> the dashed line shows where the station will be over roughly the next 2 hours, with markers every 30 minutes. It is a simple prediction, so it drifts over time.</li>
+      <li><b>Sun and moon:</b> each marker sits at the point on Earth directly beneath it, and the moon shows its current phase. The shaded area is night.</li>
+      <li><b>Layers</b> shows or hides coastlines (which need an internet connection), grid, day and night, sun, moon, quake history, events, cities, the ISS and its track, and note pulses.</li>
+      <li><b>Full screen</b> (button or <kbd>F</kbd>) gives a clean display with a live monitor and log. The cursor and buttons hide after a few seconds without movement.</li>
     </ul>
 
     <h3>Keys</h3>
     <p><kbd>F</kbd> full screen, <kbd>?</kbd> this help, <kbd>Esc</kbd> closes popups and full screen.</p>
 
     <h3>Data sources</h3>
-    <p>USGS earthquakes, wheretheiss.at, NOAA space weather, NASA EONET, Open-Meteo, NASA NeoWs and DONKI, and Natural Earth coastlines. An internet connection is needed. The only thing stored is your settings, in this browser.</p>
-    <p>NASA feeds use a shared demo key by default, which is rate-limited. Paste a free key from api.nasa.gov into the Asteroids card for faster updates.</p>
+    <p>USGS earthquakes, wheretheiss.at, NOAA space weather, NASA EONET, Open-Meteo, NASA NeoWs and DONKI, and Natural Earth coastlines. An internet connection is needed. The only things stored are your settings and your NASA key, in this browser.</p>
+    <p><b>NASA API key:</b> the asteroid and solar flare feeds use a shared demo key by default, which is rate-limited and refreshes every 3 hours. For faster updates (every 30 minutes), get a free key at <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>, paste it into the NASA API key box on the Asteroids or Solar flares card (Space tab) and press Enter. Both cards share the one key.</p>
 
     <h3>If something is not working</h3>
     <ul>
       <li><b>No sound:</b> check loopMIDI is running with a port created, the port is selected here, enabled as an input in your software, and that a track is listening on that channel.</li>
       <li><b>“Web MIDI not supported”:</b> use Chrome or Edge on a desktop. If MIDI is blocked when opening the file directly, serve it from localhost.</li>
-      <li><b>A card shows an error:</b> that feed is unreachable or rate-limited. The others keep working.</li>
+      <li><b>A card shows an error:</b> that feed is unreachable or rate-limited. The others keep working. For NASA rate limits, add your own key.</li>
+      <li><b>No coastlines:</b> they load from the internet. Check your connection, or ignore them, since the map works without.</li>
       <li><b>Too busy:</b> raise the minimum magnitude, lengthen the loops, or narrow a module’s “Only play when” filter.</li>
     </ul>
   </div>
@@ -337,12 +363,15 @@ const MODS = [
   { id: 'neo', name: 'Asteroids', src: 'NASA NeoWs', color: '--neo', ch: 6, on: true,
     cc: 'The coming 7 days of close approaches loop as notes: closer passes play higher, size sets velocity and length. CC80 next approach closeness, CC81 approaches this week, CC82 hazardous count, CC83 largest size.',
     extra: `
-      <div class="row ctl"><label>NASA API key <input type="text" id="nasakey" placeholder="DEMO_KEY" autocomplete="off" spellcheck="false"></label></div>
+      <div class="ctl keyrow"><label>NASA API key <input type="text" class="nasakey" placeholder="DEMO_KEY (shared, rate-limited)" autocomplete="off" spellcheck="false"></label>
+        <span class="src">Free at <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>. Paste it here and press Enter. Asteroids and solar flares share one key.</span></div>
       <div class="row ctl"><label><input type="checkbox" id="neo-replay" checked> Loop the next 7 days of approaches</label></div>
       <div class="row ctl"><label>Loop length <input type="range" id="neo-loop" min="20" max="300" value="60"><output id="neo-loop-o">60 s</output></label></div>` },
   { id: 'donki', name: 'Solar flares and CMEs', src: 'NASA DONKI', color: '--donki', ch: 7, on: true,
-    cc: 'The last 7 days of flares and coronal mass ejections loop as notes: strength sets pitch and velocity, CME width sets length, solar longitude sets pan. Use the filter on “kind” to isolate flares (0%) or CMEs (100%). CC90 flares, CC91 strongest flare, CC92 CMEs, CC93 fastest CME. Uses the key on the Asteroids card.',
+    cc: 'The last 7 days of flares and coronal mass ejections loop as notes: strength sets pitch and velocity, CME width sets length, solar longitude sets pan. Use the filter on “kind” to isolate flares (0%) or CMEs (100%). CC90 flares, CC91 strongest flare, CC92 CMEs, CC93 fastest CME. Shares the NASA API key with the Asteroids card.',
     extra: `
+      <div class="ctl keyrow"><label>NASA API key <input type="text" class="nasakey" placeholder="DEMO_KEY (shared, rate-limited)" autocomplete="off" spellcheck="false"></label>
+        <span class="src">Free at <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>. Paste it here and press Enter. Asteroids and solar flares share one key.</span></div>
       <div class="row ctl"><label><input type="checkbox" id="dn-replay" checked> Loop the last 7 days of events</label></div>
       <div class="row ctl"><label>Loop length <input type="range" id="dn-loop" min="20" max="300" value="60"><output id="dn-loop-o">60 s</output></label></div>` }
 ];
@@ -1087,11 +1116,12 @@ function weatherChime() {
 }
 
 /* ---------- NASA: asteroids (NeoWs) and solar events (DONKI) ---------- */
-const nasaKey = () => $('#nasakey').value.trim() || 'DEMO_KEY';
-const nasaWait = () => $('#nasakey').value.trim() ? 1800000 : 10800000;
+const nasaRaw = () => $('.nasakey').value.trim();
+const nasaKey = () => nasaRaw() || 'DEMO_KEY';
+const nasaWait = () => nasaRaw() ? 1800000 : 10800000;
 const ymd = d => d.toISOString().slice(0, 10);
 const NA = { list: [], loop: null, timer: null }, DN = { list: [], loop: null };
-const nasaErr = (id, e) => setStatus(id, e.message === 'HTTP 429' ? 'NASA rate limit reached. Add a free key from api.nasa.gov on the Asteroids card.' : 'Could not reach NASA: ' + e.message, true);
+const nasaErr = (id, e) => setStatus(id, e.message === 'HTTP 429' ? 'NASA rate limit reached. Paste a free key from api.nasa.gov into the NASA API key box on this card.' : 'Could not reach NASA: ' + e.message, true);
 async function cached(key, fn) {
   try { const c = JSON.parse(localStorage.getItem('nasa-' + key)); if (c && Date.now() - c.t < nasaWait()) return c.v; } catch (e) {}
   const v = await fn();
@@ -1178,14 +1208,19 @@ async function nasaPoll() {
   await Promise.all([neoPoll(), donkiPoll()]);
   NA.timer = setTimeout(nasaPoll, nasaWait());
 }
-try { $('#nasakey').value = localStorage.getItem('earthmidi-nasakey') || ''; } catch (e) {}
-$('#nasakey').addEventListener('change', () => {
+const nasaEls = [...document.querySelectorAll('.nasakey')];
+try { const k = localStorage.getItem('earthmidi-nasakey') || ''; nasaEls.forEach(el => { el.value = k; }); } catch (e) {}
+nasaEls.forEach(el => el.addEventListener('change', () => {
+  const k = el.value.trim();
+  nasaEls.forEach(o => { o.value = k; });
   try {
-    localStorage.setItem('earthmidi-nasakey', $('#nasakey').value.trim());
-    Object.keys(localStorage).filter(k => k.startsWith('nasa-')).forEach(k => localStorage.removeItem(k));
+    localStorage.setItem('earthmidi-nasakey', k);
+    Object.keys(localStorage).filter(x => x.startsWith('nasa-')).forEach(x => localStorage.removeItem(x));
   } catch (e) {}
+  const msg = k ? 'Key saved. Refreshing…' : 'Key cleared. Using the shared demo key. Refreshing…';
+  setStatus('neo', msg); setStatus('donki', msg);
   nasaPoll();
-});
+}));
 $('#neo-replay').addEventListener('change', neoLoop);
 $('#neo-loop').addEventListener('input', e => { $('#neo-loop-o').textContent = e.target.value + ' s'; });
 $('#neo-loop').addEventListener('change', neoLoop);
