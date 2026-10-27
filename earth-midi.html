@@ -1,0 +1,1484 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Earth to MIDI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --abyss:#0c1424; --panel:#131e33; --panel2:#182640; --line:#26364f;
+  --text:#dbe6f5; --muted:#8397b3;
+  --quake:#ff7a59; --iss:#8ee8ff; --space:#b99bff; --events:#ffd166; --weather:#6ee7b7; --neo:#ff8fcf; --donki:#c8f26b; --emsc:#ffa94d; --xray:#ff5d8f; --scales:#5ec8ff;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--abyss);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.5}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;padding:18px;max-width:1560px;margin:0 auto}
+@media(max-width:1000px){.app{grid-template-columns:1fr}}
+header{grid-column:1/-1;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,6vw,64px);line-height:.95;letter-spacing:-.035em;margin:0}
+h1 span{color:var(--iss);font-weight:500}
+header p{margin:0;max-width:46ch;color:var(--muted)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+.panel h2{font-family:var(--display);font-weight:500;font-size:16px;margin:0 0 10px;letter-spacing:-.01em}
+.mapwrap{padding:0;overflow:hidden;position:relative}
+canvas{display:block;width:100%;height:auto;background:#0a1120}
+.maplegend{position:absolute;left:12px;bottom:10px;display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted);pointer-events:none}
+.maplegend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:18px}
+.card{border-top:3px solid var(--c);background:var(--panel);border-left:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:4px 4px 10px 10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.card.off{opacity:.55}
+.card header{align-items:center;flex-wrap:nowrap}
+.card h3{font-family:var(--display);font-weight:800;font-size:19px;letter-spacing:-.02em;margin:0;display:flex;align-items:center;gap:9px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--c);opacity:.35;transition:opacity .5s,transform .5s}
+.dot.hit{opacity:1;transform:scale(1.7);transition:none}
+.src{color:var(--muted);font-size:11px}
+.ro{background:var(--abyss);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-height:64px;color:var(--text);font-variant-numeric:tabular-nums;white-space:pre-line}
+.status{font-size:11px;color:var(--muted)}
+.status.err{color:#ff9b8a}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.ctl label{display:flex;align-items:center;gap:8px;color:var(--muted)}
+.ccmap{color:var(--muted);font-size:11px;border-top:1px dashed var(--line);padding-top:8px}
+select,button,input[type=range]{font:inherit;color:var(--text)}
+select{background:var(--abyss);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--iss)}
+button.primary{background:var(--iss);color:#06202a;border-color:var(--iss);font-weight:500}
+button.danger:hover{border-color:var(--quake);color:var(--quake)}
+:focus-visible{outline:2px solid var(--iss);outline-offset:2px}
+input[type=range]{accent-color:var(--iss);width:120px}
+input[type=checkbox]{accent-color:var(--iss);width:15px;height:15px}
+.side{display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.field>span{color:var(--muted);font-size:11px}
+.field select{width:100%}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.midi-state{font-size:12px;margin-bottom:10px;padding:8px 10px;border-radius:6px;background:var(--abyss);border:1px solid var(--line)}
+.midi-state.ok{border-color:var(--weather);color:var(--weather)}
+.midi-state.bad{border-color:var(--quake);color:#ffb4a3}
+#log{height:300px;overflow:auto;font-size:11.5px;display:flex;flex-direction:column-reverse}
+#log div{padding:2px 0;border-bottom:1px solid rgba(38,54,79,.5)}
+#log b{font-weight:500}
+.help{color:var(--muted);font-size:12px}
+.help li{margin-bottom:4px}
+@media (prefers-reduced-motion:reduce){.dot{transition:none}}
+details{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:8px;background:var(--panel)}
+details>summary{cursor:pointer;font-family:var(--display);font-weight:500}
+details.mp{border-left:3px solid var(--c)}
+.npg{display:grid;gap:7px;margin-top:8px}
+.npg label{display:flex;gap:6px;align-items:center;flex-wrap:wrap;color:var(--muted)}
+input[type=number]{background:var(--abyss);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:3px 5px;font:inherit;width:60px}
+.tw{overflow-x:auto;margin-top:8px}
+table{border-collapse:collapse;width:100%;font-size:12px}
+td,th{padding:4px 6px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:left;font-weight:400}
+th{color:var(--muted)}
+.bar{width:64px;height:8px;background:var(--abyss);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--c)}
+pre#mon{margin:0;font-size:11.5px;height:250px;overflow:hidden;white-space:pre-wrap;word-break:break-word;color:var(--muted)}
+input[type=text]{background:var(--abyss);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font:inherit;width:130px}
+.app[data-tab=earth]{--tab:var(--weather)}
+.app[data-tab=space]{--tab:var(--space)}
+.tabs{grid-column:1/-1;display:flex;gap:8px;border-bottom:4px solid var(--tab);margin-top:-6px;padding-top:4px}
+.tabs button{display:flex;align-items:baseline;background:var(--panel);border:1px solid var(--line);border-bottom:0;border-radius:12px 12px 0 0;padding:11px 24px;font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:-.02em;color:var(--muted);cursor:pointer;margin-bottom:-4px}
+.tabs button[data-t=earth]{--a:var(--weather)}
+.tabs button[data-t=space]{--a:var(--space)}
+.tabs button small{font:400 12px var(--mono);margin-left:10px;letter-spacing:0}
+.tabs button:hover{color:var(--text);border-color:var(--a)}
+.tabs button[aria-selected=true]{background:var(--a);border-color:var(--a);color:#06121a}
+.tabs button[aria-selected=true] small{color:rgba(6,18,26,.78)}
+.tabs button[aria-selected=true]::before{content:"●";font-size:11px;margin-right:9px;align-self:center}
+.app[data-tab=earth] [data-g=space],.app[data-tab=space] [data-g=earth]{display:none}
+.mapctl{position:absolute;top:10px;right:10px;display:flex;gap:8px;align-items:flex-start;z-index:2;transition:opacity .4s}
+.layers{margin:0;background:rgba(19,30,51,.92)}
+.mapwrap.pfs{position:fixed;inset:0;z-index:50;border-radius:0}
+.mapwrap.fs{background:#0a1120;display:flex;align-items:center;justify-content:center;border:0;border-radius:0}
+.mapwrap.fs .maplegend{left:50%;transform:translateX(-50%);bottom:12px}
+.mapwrap.fs.idle{cursor:none}
+.mapwrap.fs.idle .mapctl{opacity:0}
+.hud{display:none;position:absolute;inset:0;pointer-events:none}
+.mapwrap.fs .hud{display:block}
+#hud-top{position:absolute;left:18px;top:14px;font-family:var(--display);font-size:24px;font-weight:800;letter-spacing:-.02em}
+#hud-top small{display:block;font:400 12px var(--mono);color:var(--muted);letter-spacing:0}
+#hud-mon{position:absolute;left:18px;bottom:40px;white-space:pre;color:var(--muted);font-size:12px}
+#hud-log{position:absolute;right:18px;bottom:40px;text-align:right;font-size:12px;max-width:42%}
+.pop{position:absolute;z-index:3;max-width:260px;background:rgba(12,20,36,.96);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.55}
+.pop h4{margin:0 0 4px;font-family:var(--display);font-size:16px;letter-spacing:-.01em}
+.pop button{margin:8px 6px 0 0;padding:5px 10px}
+canvas{cursor:crosshair}
+header p.abs{max-width:none;font-size:14px;flex:1;min-width:260px}
+.abs span{display:block}
+.abs span:first-child{color:var(--text);font-family:var(--display);font-weight:500;font-size:19px;letter-spacing:-.01em}
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:0;width:min(720px,94vw);max-height:86vh;font-family:var(--mono);font-size:13px}
+dialog[open]{display:flex;flex-direction:column}
+dialog::backdrop{background:rgba(5,9,18,.75)}
+.hd{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+.hd h2{font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:-.02em;margin:0}
+.hb{overflow:auto;padding:4px 18px 20px;line-height:1.6}
+.hb h3{font-family:var(--display);font-weight:500;font-size:16px;margin:18px 0 4px;color:var(--iss)}
+.hb p,.hb li{margin:4px 0}
+.hb ul,.hb ol{padding-left:20px;margin:4px 0}
+.hb kbd{background:var(--abyss);border:1px solid var(--line);border-radius:4px;padding:1px 6px;font:inherit}
+.hb a{color:var(--iss)}
+.keyrow{display:flex;flex-direction:column;gap:4px}
+.keyrow label{width:100%}
+.keyrow input{flex:1;min-width:0;width:auto}
+.keyrow a{color:var(--iss)}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.chip{position:relative;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:11px;color:var(--muted);cursor:pointer;background:var(--abyss)}
+.chip input{position:absolute;opacity:0;pointer-events:none}
+.chip:has(input:checked){border-color:var(--c,var(--iss));color:var(--text)}
+.chip:has(input:checked)::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--c,var(--iss))}
+.chip:has(input:focus-visible){outline:2px solid var(--iss);outline-offset:2px}
+.pp{font-family:var(--display);font-weight:800;font-size:16px;padding:9px 18px;background:var(--weather);border-color:var(--weather);color:#06121a}
+.pp[aria-pressed=true]{background:var(--events);border-color:var(--events);color:#1a1200}
+body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--events);color:#1a1200;padding:3px 16px;border-radius:999px;font-family:var(--display);font-weight:800;z-index:2;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Earth <span>to</span> MIDI</h1>
+    <p class="abs"><span>Earth and space data for live events.</span><span>Real-time quakes, weather, the ISS, solar activity and asteroids, turned into MIDI notes and controllers for your DAW, lights or show control.</span></p>
+    <button id="btn-pp" class="pp" aria-pressed="false">❚❚ Pause all</button>
+    <button id="btn-help" aria-haspopup="dialog">Help</button>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Data groups">
+    <button role="tab" data-t="earth" aria-selected="true">Earth<small>quakes (USGS, EMSC), events, weather</small></button>
+    <button role="tab" data-t="space" aria-selected="false">Space<small>ISS, solar wind, X-rays, storms, asteroids, flares</small></button>
+  </nav>
+  <main>
+    <div class="panel mapwrap">
+      <canvas id="map" aria-label="World map showing live data points"></canvas>
+      <div class="mapctl">
+        <details class="layers"><summary>Layers</summary><div class="npg">
+          <label><input type="checkbox" data-l="land"> Coastlines</label>
+          <label><input type="checkbox" data-l="grid"> Grid</label>
+          <label><input type="checkbox" data-l="term"> Day and night</label>
+          <label><input type="checkbox" data-l="sun"> Sun position</label>
+          <label><input type="checkbox" data-l="quakes"> Quake history</label>
+          <label><input type="checkbox" data-l="events"> Natural events</label>
+          <label><input type="checkbox" data-l="cities"> Weather cities</label>
+          <label><input type="checkbox" data-l="iss"> Space station</label>
+          <label><input type="checkbox" data-l="track"> ISS ground track</label>
+          <label><input type="checkbox" data-l="moon"> Moon</label>
+          <label><input type="checkbox" data-l="pulses"> Note pulses</label>
+        </div></details>
+        <button id="btn-fs">Full screen</button>
+      </div>
+      <div class="hud"><div id="hud-top"></div><div id="hud-mon"></div><div id="hud-log"></div></div>
+      <div class="pop" id="pop" hidden></div>
+      <div class="maplegend">
+        <span><i style="background:var(--quake)"></i>Earthquakes</span>
+        <span><i style="background:var(--iss)"></i>ISS</span>
+        <span><i style="background:var(--events)"></i>Natural events</span>
+        <span><i style="background:var(--weather)"></i>Weather cities</span>
+      </div>
+    </div>
+    <div class="cards" id="cards"></div>
+    <section class="panel" style="margin-top:18px">
+      <div class="row"><h2>Controller mapping</h2>
+        <div class="btns"><button id="btn-exp">Export</button><button id="btn-imp">Import</button><button id="btn-rst" class="danger">Reset</button><input type="file" id="file-imp" accept=".json" hidden></div></div>
+      <p class="help">Every data stream below goes out as controller data (0 to 127), pitch bend or aftertouch. The range narrows the part of the data that counts, so 40 to 60% stretches that slice across the full 0 to 127. Channel “Follow” uses the module’s note channel. Changes save automatically.</p>
+      <div id="maps"></div>
+    </section>
+  </main>
+
+  <aside class="side">
+    <section class="panel">
+      <h2>MIDI output</h2>
+      <div id="midi-state" class="midi-state">Not connected yet.</div>
+      <label class="field"><span>Output port</span><select id="port"><option value="">No port (preview only)</option></select></label>
+      <div class="btns">
+        <button class="primary" id="btn-connect">Connect MIDI</button>
+        <button id="btn-test">Send test chord</button>
+        <button class="danger" id="btn-panic">Panic</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Musical settings</h2>
+      <label class="field"><span>Key</span>
+        <select id="root"></select></label>
+      <label class="field"><span>Scale</span>
+        <select id="scale"></select></label>
+      <label class="field"><span>Lowest octave</span>
+        <select id="oct"><option>0</option><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+      <label class="field"><span>Note length</span>
+        <div class="row"><input type="range" id="len" min="25" max="300" value="100"><output id="len-o">100%</output></div></label>
+    </section>
+
+    <section class="panel">
+      <h2>Activity</h2>
+      <div id="log" aria-live="off"></div></section><section class="panel"><h2>MIDI monitor <span class="src" id="mon-state">· live</span></h2>
+      <div class="chips" id="mon-types">
+        <label class="chip"><input type="checkbox" data-mt="note"><span>Notes</span></label>
+        <label class="chip"><input type="checkbox" data-mt="cc"><span>Controllers</span></label>
+        <label class="chip"><input type="checkbox" data-mt="bend"><span>Pitch bend</span></label>
+        <label class="chip"><input type="checkbox" data-mt="at"><span>Aftertouch</span></label>
+      </div>
+      <div class="chips" id="mon-mods"></div>
+      <div class="row" style="margin-bottom:8px">
+        <label class="ctl row" style="gap:6px"><span class="src">Channel</span><select id="mon-ch"><option value="0">All</option></select></label>
+        <input type="text" id="mon-q" placeholder="Search, e.g. wildfire" style="flex:1;min-width:0;width:auto">
+      </div>
+      <div class="btns" style="margin-bottom:8px"><button id="mon-all">Show all</button><button id="mon-none">None</button><button id="mon-pause">Pause</button><button id="mon-clear">Clear</button></div>
+      <pre id="mon"></pre>
+    </section>
+
+    <section class="panel">
+      <h2>Setup with loopMIDI</h2>
+      <ol class="help">
+        <li>Open loopMIDI and create a port (the + button).</li>
+        <li>Open this page in Chrome or Edge and press Connect MIDI. Choose your loopMIDI port.</li>
+        <li>In your DAW or Chataigne, enable that port as a MIDI input, then listen on channels 1 to 5.</li>
+      </ol>
+    </section>
+  </aside>
+</div>
+
+<dialog id="help" aria-labelledby="help-t">
+  <div class="hd"><h2 id="help-t">How Earth to MIDI works</h2><button id="help-x">Close</button></div>
+  <div class="hb">
+    <h3>What it is</h3>
+    <p>Earth and space data for live events. The page reads public live feeds and turns each reading into MIDI. Discrete events, like a quake or an asteroid pass, become notes. Continuous values, like wind speed or the Kp index, become controllers (CC, 0 to 127).</p>
+
+    <h3>What is loopMIDI, and why do you need it?</h3>
+    <p><a href="https://www.tobias-erichsen.de/software/loopmidi.html" target="_blank" rel="noopener">loopMIDI</a> is a free Windows program by Tobias Erichsen that creates virtual MIDI ports. Think of each port as a software cable: one program sends MIDI into it, and another program reads MIDI out of it.</p>
+    <p>You need it because a web page can only send MIDI to ports your computer already knows about, and Windows has no built-in way to pass MIDI between programs. With a loopMIDI port, this page sends the data, and your DAW, Chataigne or lighting software receives it as if it came from a hardware controller.</p>
+    <p>On macOS you don’t need it, because the built-in IAC Driver (in Audio MIDI Setup) does the same job. loopMIDI is free for personal use, so check the terms on its website if you plan to use it commercially.</p>
+
+    <h3>Quick start</h3>
+    <ol>
+      <li>Install <a href="https://www.tobias-erichsen.de/software/loopmidi.html" target="_blank" rel="noopener">loopMIDI</a> (Windows), open it and click the + button to create a port. Leave it running. On macOS, turn on the IAC Driver instead.</li>
+      <li>Open this page in Chrome or Edge and press <b>Connect MIDI</b>. Choose your port (loopMIDI is picked automatically).</li>
+      <li>In your DAW, Chataigne or lighting software, enable that port as an input and listen on channels 1 to 10.</li>
+      <li>Press <b>Send test chord</b> to check the link. <b>Panic</b> clears any stuck notes.</li>
+    </ol>
+    <p>With no port selected the page runs in preview mode: the map, log and monitor still work.</p>
+
+    <h3>Earth and Space tabs</h3>
+    <p>The filled, highlighted tab (green for Earth, violet for Space) is the one you are looking at. The tabs only change what you see: every module keeps running and sending MIDI whichever tab is open. Use the On switch on a card to mute a module.</p>
+    <ul>
+      <li><b>Earth:</b> earthquakes (USGS and EMSC), natural events, weather chimes.</li>
+      <li><b>Space:</b> space station, space weather, solar X-rays, NOAA storm scales, asteroids, solar flares and CMEs.</li>
+    </ul>
+
+    <h3>Pause and resume</h3>
+    <p><b>Pause all</b> (top right, or the <kbd>Space</kbd> bar) silences everything at once. It sends all-notes-off, stops the loops and sequencers, and holds the controllers where they are. Data keeps updating in the background, and quakes that arrive while paused are skipped. <b>Resume</b> sends the current controller values again and restarts the loops from the beginning. A “Paused” label shows on the map, including in full screen.</p>
+
+    <h3>Channels</h3>
+    <p>1 Earthquakes, 2 Space station, 3 Space weather, 4 Natural events, 5 Weather, 6 Asteroids, 7 Solar flares and CMEs, 8 Earthquakes (EMSC), 9 Solar X-rays, 10 NOAA storm scales. Change any of them with the Note channel menu on its card. The test chord plays on the earthquake channel.</p>
+
+    <h3>Module cards</h3>
+    <ul>
+      <li><b>Loops:</b> quakes (last 24 hours), solar wind (last 2 hours), X-rays (last 6 hours), asteroids (next 7 days) and flares (last 7 days) replay as loops over the length you choose, so there is always something playing.</li>
+      <li><b>Note output:</b> pick the data that drives pitch, velocity, length and pan, set the octave range, or turn notes off to use a module for controllers only. Pan is sent as CC10 just before each note.</li>
+      <li><b>Only play when:</b> a filter, for example only quakes in the top 40% of magnitude. On solar flares, use it on “kind” to isolate flares (0%) or CMEs (100%).</li>
+      <li><b>Two quake sources:</b> USGS is checked every 30 seconds and has the 24-hour loop. EMSC is a live push of new quakes only. A big quake can play on both, since they use different channels, so mute either with its On switch.</li>
+      <li><b>Alerts:</b> the X-ray and storm scale modules play a chord when the flare class or a NOAA scale level goes up.</li>
+      <li><b>Musical settings</b> (side panel): key, scale, lowest octave and overall note length for every module.</li>
+    </ul>
+
+    <h3>Controller mapping</h3>
+    <p>Every data stream can be sent as CC, pitch bend or aftertouch, on its own channel and CC number. <b>Range %</b> zooms in on the part of the data you care about and stretches it to 0 to 127. <b>Invert</b> flips it and <b>Smooth</b> slows the changes. A live bar shows each stream’s output. Your setup saves automatically. Use Export and Import to move it between machines, and Reset to go back to the defaults.</p>
+
+    <h3>Default controller numbers</h3>
+    <ul>
+      <li><b>Earthquakes (ch 1):</b> CC20 latest magnitude, CC21 quakes in the last hour.</li>
+      <li><b>Space station (ch 2):</b> CC20 latitude, CC21 longitude, CC22 altitude, CC23 daylight.</li>
+      <li><b>Space weather (ch 3):</b> CC30 Kp index, CC31 solar wind speed, CC32 magnetic Bz, CC33 density, CC34 total field, CC35 moon phase, CC36 subsolar longitude (Earth’s rotation), CC37 subsolar latitude (the season), CC38 moon illumination, CC39 sublunar longitude.</li>
+      <li><b>Natural events (ch 4):</b> CC40 wildfires, CC41 volcanoes, CC42 storms, CC43 all open events.</li>
+      <li><b>Weather (ch 5):</b> CC50 to 57 temperature, CC60 to 67 wind, CC70 to 77 pressure, for Reykjavík, London, New York, São Paulo, Cape Town, Mumbai, Tokyo and Sydney in that order.</li>
+      <li><b>Asteroids (ch 6):</b> CC80 next approach closeness, CC81 approaches this week, CC82 hazardous count, CC83 largest size.</li>
+      <li><b>Solar flares and CMEs (ch 7):</b> CC90 flares this week, CC91 strongest flare, CC92 CMEs, CC93 fastest CME.</li>
+      <li><b>Earthquakes, EMSC (ch 8):</b> CC100 latest magnitude, CC101 quakes in the last hour.</li>
+      <li><b>Solar X-rays (ch 9):</b> CC110 long-band flux, CC111 short-band flux, CC112 flare class (A to X).</li>
+      <li><b>NOAA storm scales (ch 10):</b> CC102 radio blackout (R), CC103 solar radiation (S), CC104 geomagnetic storm (G), CC105 highest scale, CC106 tomorrow’s G, CC107 proton flux.</li>
+    </ul>
+
+    <h3>MIDI monitor</h3>
+    <p>The monitor in the side panel shows the latest messages as they are sent, with what triggered each one: for example a wildfire, a quake and its location, a city’s weather, an asteroid or a flare class. Controller lines show the module and stream. It also works in preview mode with no port selected.</p>
+    <p>Use the filters above the monitor to focus on what matters: switch message types on or off (notes, controllers, pitch bend, aftertouch), tick only the sources you want, pick a channel, or search for a word such as “wildfire”. <b>Pause</b> freezes the display so you can read it, <b>Clear</b> empties it and <b>Show all</b> resets the filters. The filters only change what you see here and in the full-screen display, not what is sent. Your choices are remembered.</p>
+
+    <h3>The map</h3>
+    <ul>
+      <li><b>Click</b> any dot, the ISS, the sun or the moon for details. Quakes, events and cities have a button to play just that item.</li>
+      <li><b>ISS ground track:</b> the dashed line shows where the station will be over roughly the next 2 hours, with markers every 30 minutes. It is a simple prediction, so it drifts over time.</li>
+      <li><b>Sun and moon:</b> each marker sits at the point on Earth directly beneath it, and the moon shows its current phase. The shaded area is night.</li>
+      <li><b>Layers</b> shows or hides coastlines (which need an internet connection), grid, day and night, sun, moon, quake history, events, cities, the ISS and its track, and note pulses.</li>
+      <li><b>Full screen</b> (button or <kbd>F</kbd>) gives a clean display with a live monitor and log. The cursor and buttons hide after a few seconds without movement.</li>
+    </ul>
+
+    <h3>Keys</h3>
+    <p><kbd>Space</kbd> pause or resume everything, <kbd>F</kbd> full screen, <kbd>?</kbd> this help, <kbd>Esc</kbd> closes popups and full screen.</p>
+
+    <h3>Data sources</h3>
+    <p>USGS and EMSC earthquakes, wheretheiss.at, NOAA space weather (solar wind, GOES X-ray and proton flux, storm scales), NASA EONET, Open-Meteo, NASA NeoWs and DONKI, and Natural Earth coastlines. An internet connection is needed. The only things stored are your settings and your NASA key, in this browser.</p>
+    <p><b>NASA API key:</b> the asteroid and solar flare feeds use a shared demo key by default, which is rate-limited and refreshes every 3 hours. For faster updates (every 30 minutes), get a free key at <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>, paste it into the NASA API key box on the Asteroids or Solar flares card (Space tab) and press Enter. Both cards share the one key.</p>
+
+    <h3>If something is not working</h3>
+    <ul>
+      <li><b>No sound:</b> check loopMIDI is running with a port created, the port is selected here, enabled as an input in your software, and that a track is listening on that channel.</li>
+      <li><b>“Web MIDI not supported”:</b> use Chrome or Edge on a desktop. If MIDI is blocked when opening the file directly, serve it from localhost.</li>
+      <li><b>A card shows an error:</b> that feed is unreachable or rate-limited. The others keep working. For NASA rate limits, add your own key.</li>
+      <li><b>No coastlines:</b> they load from the internet. Check your connection, or ignore them, since the map works without.</li>
+      <li><b>Too busy:</b> raise the minimum magnitude, lengthen the loops, or narrow a module’s “Only play when” filter.</li>
+    </ul>
+  </div>
+</dialog>
+<script>
+(() => {
+'use strict';
+
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const trim = (t, n = 26) => String(t).length > n ? String(t).slice(0, n - 1) + '…' : String(t);
+const s01 = (v, a, b) => clamp((v - a) / (b - a), 0, 1);
+const NN = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+const nn = n => NN[n % 12] + (Math.floor(n / 12) - 1);
+const SCALES = {
+  'Minor pentatonic': [0,3,5,7,10],
+  'Major pentatonic': [0,2,4,7,9],
+  'Natural minor': [0,2,3,5,7,8,10],
+  'Dorian': [0,2,3,5,7,9,10],
+  'Phrygian': [0,1,3,5,7,8,10],
+  'Lydian': [0,2,4,6,7,9,11],
+  'Whole tone': [0,2,4,6,8,10],
+  'Hirajoshi': [0,2,3,7,8],
+  'Chromatic': [0,1,2,3,4,5,6,7,8,9,10,11]
+};
+const S = { midi: null, out: null, root: 0, oct: 2, scale: 'Minor pentatonic', len: 1, paused: false, gen: 0 };
+
+function scaleDeg(i, off = 0) {
+  const sc = SCALES[S.scale];
+  const o = Math.floor(i / sc.length);
+  const k = ((i % sc.length) + sc.length) % sc.length;
+  return clamp(12 * (S.oct + off + 1) + S.root + 12 * o + sc[k], 0, 127);
+}
+function noteFrom(t, span = 3, off = 0) {
+  const total = SCALES[S.scale].length * span;
+  return scaleDeg(Math.min(total - 1, Math.floor(clamp(t, 0, 1) * total)), off);
+}
+
+/* ---------- modules ---------- */
+const MODS = [
+  { id: 'quake', name: 'Earthquakes', src: 'USGS', color: '--quake', ch: 1, on: true,
+    cc: 'Notes: depth sets pitch (shallow is higher), magnitude sets velocity and length, longitude sets pan (CC10). CC20 latest magnitude, CC21 quakes in the last hour.',
+    extra: `
+      <div class="row ctl"><label>Minimum magnitude
+        <select id="q-mag"><option value="all">All</option><option value="1.0">1.0+</option><option value="2.5" selected>2.5+</option><option value="4.5">4.5+</option></select></label></div>
+      <div class="row ctl"><label><input type="checkbox" id="q-replay" checked> Replay the last 24 hours as a loop</label></div>
+      <div class="row ctl"><label>Loop length <input type="range" id="q-loop" min="20" max="300" value="90"><output id="q-loop-o">90 s</output></label></div>` },
+  { id: 'iss', name: 'Space station', src: 'wheretheiss.at', color: '--iss', ch: 2, on: true,
+    cc: 'CC20 latitude, CC21 longitude, CC22 altitude, CC23 daylight. A note plays every few degrees of longitude, pitched by latitude.',
+    extra: `
+      <div class="row ctl"><label>Play a note every
+        <select id="iss-deg"><option value="2" selected>2° of longitude</option><option value="5">5° of longitude</option><option value="10">10° of longitude</option></select></label></div>` },
+  { id: 'space', name: 'Space weather', src: 'NOAA SWPC', color: '--space', ch: 3, on: true,
+    cc: 'CC30 Kp index, CC31 solar wind speed, CC32 magnetic Bz, CC33 density, CC34 total field, CC35 moon phase, CC36 subsolar longitude (Earth’s rotation), CC37 subsolar latitude (the season), CC38 moon illumination, CC39 sublunar longitude. A chord plays when Kp changes; more notes at higher Kp.',
+    extra: `
+      <div class="row ctl"><label><input type="checkbox" id="sp-replay" checked> Replay 2 hours of solar wind as a loop</label></div>
+      <div class="row ctl"><label>Loop length <input type="range" id="sp-loop" min="10" max="120" value="30"><output id="sp-loop-o">30 s</output></label></div>` },
+  { id: 'events', name: 'Natural events', src: 'NASA EONET', color: '--events', ch: 4, on: true,
+    cc: 'A sequencer sweeps west to east through every open event: latitude sets pitch, category sets note length. CC40 wildfires, CC41 volcanoes, CC42 storms, CC43 all open events.',
+    extra: `
+      <div class="row ctl"><label>Tempo <input type="range" id="ev-bpm" min="40" max="240" value="110"><output id="ev-bpm-o">110 bpm</output></label></div>` },
+  { id: 'weather', name: 'Weather chimes', src: 'Open-Meteo', color: '--weather', ch: 5, on: true,
+    cc: 'Eight cities. CC50–57 temperature, CC60–67 wind, CC70–77 pressure. One city chimes every 6 seconds: temperature sets pitch, wind sets velocity.',
+    extra: '' },
+  { id: 'neo', name: 'Asteroids', src: 'NASA NeoWs', color: '--neo', ch: 6, on: true,
+    cc: 'The coming 7 days of close approaches loop as notes: closer passes play higher, size sets velocity and length. CC80 next approach closeness, CC81 approaches this week, CC82 hazardous count, CC83 largest size.',
+    extra: `
+      <div class="ctl keyrow"><label>NASA API key <input type="text" class="nasakey" placeholder="DEMO_KEY (shared, rate-limited)" autocomplete="off" spellcheck="false"></label>
+        <span class="src">Free at <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>. Paste it here and press Enter. Asteroids and solar flares share one key.</span></div>
+      <div class="row ctl"><label><input type="checkbox" id="neo-replay" checked> Loop the next 7 days of approaches</label></div>
+      <div class="row ctl"><label>Loop length <input type="range" id="neo-loop" min="20" max="300" value="60"><output id="neo-loop-o">60 s</output></label></div>` },
+  { id: 'donki', name: 'Solar flares and CMEs', src: 'NASA DONKI', color: '--donki', ch: 7, on: true,
+    cc: 'The last 7 days of flares and coronal mass ejections loop as notes: strength sets pitch and velocity, CME width sets length, solar longitude sets pan. Use the filter on “kind” to isolate flares (0%) or CMEs (100%). CC90 flares, CC91 strongest flare, CC92 CMEs, CC93 fastest CME. Shares the NASA API key with the Asteroids card.',
+    extra: `
+      <div class="ctl keyrow"><label>NASA API key <input type="text" class="nasakey" placeholder="DEMO_KEY (shared, rate-limited)" autocomplete="off" spellcheck="false"></label>
+        <span class="src">Free at <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>. Paste it here and press Enter. Asteroids and solar flares share one key.</span></div>
+      <div class="row ctl"><label><input type="checkbox" id="dn-replay" checked> Loop the last 7 days of events</label></div>
+      <div class="row ctl"><label>Loop length <input type="range" id="dn-loop" min="20" max="300" value="60"><output id="dn-loop-o">60 s</output></label></div>` },
+  { id: 'emsc', name: 'Quakes (EMSC)', src: 'EMSC live feed', color: '--emsc', ch: 8, on: true,
+    cc: 'Live push from the European-Mediterranean Seismological Centre: each new quake plays a note the moment it is reported. Depth sets pitch, magnitude sets velocity and length, longitude sets pan. CC100 latest magnitude, CC101 quakes in the last hour. It overlaps with USGS, so mute one if you only want one.',
+    extra: `
+      <div class="row ctl"><label>Minimum magnitude <select id="emsc-min"><option value="0">All</option><option value="2" selected>2+</option><option value="3">3+</option><option value="4">4+</option></select></label></div>` },
+  { id: 'xray', name: 'Solar X-rays', src: 'NOAA GOES', color: '--xray', ch: 9, on: true,
+    cc: 'GOES X-ray flux, the standard measure of solar flares. The last 6 hours loop as notes (higher flux, higher pitch), and a chord plays when the flare class rises. CC110 long-band flux, CC111 short-band flux, CC112 flare class (A to X).',
+    extra: `
+      <div class="row ctl"><label><input type="checkbox" id="xr-replay" checked> Loop the last 6 hours of X-ray flux</label></div>
+      <div class="row ctl"><label>Loop length <input type="range" id="xr-loop" min="10" max="120" value="30"><output id="xr-loop-o">30 s</output></label></div>` },
+  { id: 'scales', name: 'NOAA storm scales', src: 'NOAA SWPC', color: '--scales', ch: 10, on: true,
+    cc: 'NOAA’s space weather scales, 0 to 5: R radio blackouts, S solar radiation storms, G geomagnetic storms. A note pulses each minute (stronger at higher levels) and a chord plays when any scale rises. CC102 R, CC103 S, CC104 G, CC105 highest, CC106 tomorrow’s G, CC107 proton flux.',
+    extra: '' }
+];
+const byId = id => MODS.find(m => m.id === id);
+const colorOf = m => getComputedStyle(document.documentElement).getPropertyValue(m.color).trim();
+
+/* ---------- routing model ---------- */
+const KEY = 'earthmidi-v2';
+const GROUP = { quake: 'earth', events: 'earth', weather: 'earth', iss: 'space', space: 'space', neo: 'space', donki: 'space', emsc: 'earth', xray: 'space', scales: 'space' };
+const P = {
+  quake: { mag: 'Magnitude', depth: 'Depth', lon: 'Longitude', lat: 'Latitude' },
+  iss: { lat: 'Latitude', lon: 'Longitude', day: 'Daylight' },
+  space: { speed: 'Wind speed', density: 'Density', bz: 'Bz' },
+  events: { lat: 'Latitude', lon: 'Longitude', cat: 'Category', dur: 'Category length' },
+  weather: { temp: 'Temperature', wind: 'Wind', press: 'Pressure', rain: 'Rain', lon: 'Longitude', lat: 'Latitude' },
+  neo: { close: 'Closeness', size: 'Size', speed: 'Speed', haz: 'Hazardous' },
+  donki: { str: 'Strength', width: 'CME width', lon: 'Solar longitude', lat: 'Solar latitude', kind: 'Kind (flare 0, CME 100)' },
+  emsc: { mag: 'Magnitude', depth: 'Depth', lon: 'Longitude', lat: 'Latitude' },
+  xray: { flux: 'X-ray flux', cls: 'Flare class' },
+  scales: { level: 'Highest scale' }
+};
+const NP0 = {
+  quake: { pitch: 'depth', pinv: 1, vel: 'mag', dur: 'mag', pan: 'lon', span: 3, off: 1, vmin: 20, vmax: 127, dmin: 150, dmax: 3000 },
+  iss: { pitch: 'lat', pinv: 0, vel: 'day', dur: '', pan: 'lon', span: 3, off: 1, vmin: 70, vmax: 120, dmin: 700, dmax: 700 },
+  space: { pitch: 'speed', pinv: 0, vel: 'density', dur: '', pan: '', span: 3, off: 0, vmin: 35, vmax: 120, dmin: 220, dmax: 220 },
+  events: { pitch: 'lat', pinv: 0, vel: 'cat', dur: 'dur', pan: 'lon', span: 3, off: 0, vmin: 55, vmax: 115, dmin: 150, dmax: 2000 },
+  weather: { pitch: 'temp', pinv: 0, vel: 'wind', dur: 'rain', pan: 'lon', span: 3, off: 1, vmin: 40, vmax: 120, dmin: 900, dmax: 2500 },
+  neo: { pitch: 'close', pinv: 0, vel: 'size', dur: 'size', pan: '', span: 3, off: 0, vmin: 40, vmax: 125, dmin: 300, dmax: 4000 },
+  donki: { pitch: 'str', pinv: 0, vel: 'str', dur: 'width', pan: 'lon', span: 3, off: 0, vmin: 40, vmax: 127, dmin: 200, dmax: 5000 },
+  emsc: { pitch: 'depth', pinv: 1, vel: 'mag', dur: 'mag', pan: 'lon', span: 3, off: 1, vmin: 20, vmax: 127, dmin: 150, dmax: 3000 },
+  xray: { pitch: 'flux', pinv: 0, vel: 'flux', dur: 'cls', pan: '', span: 3, off: 0, vmin: 30, vmax: 120, dmin: 150, dmax: 1500 },
+  scales: { pitch: 'level', pinv: 0, vel: 'level', dur: 'level', pan: '', span: 2, off: 0, vmin: 40, vmax: 127, dmin: 400, dmax: 4000 }
+};
+const CN = ['Reykjavík','London','New York','São Paulo','Cape Town','Mumbai','Tokyo','Sydney'];
+const STREAMS = [
+  ['quake',20,'Latest magnitude'],['quake',21,'Quakes in last hour'],
+  ['iss',20,'Latitude'],['iss',21,'Longitude'],['iss',22,'Altitude'],['iss',23,'Daylight'],
+  ['space',30,'Kp index'],['space',31,'Solar wind speed'],['space',32,'Magnetic Bz'],['space',33,'Density'],['space',34,'Total field'],['space',35,'Moon phase'],['space',36,'Subsolar longitude'],['space',37,'Subsolar latitude'],['space',38,'Moon illumination'],['space',39,'Sublunar longitude'],
+  ['events',40,'Wildfires'],['events',41,'Volcanoes'],['events',42,'Storms'],['events',43,'All open events'],
+  ...CN.map((c, i) => ['weather', 50 + i, c + ' temperature']),
+  ...CN.map((c, i) => ['weather', 60 + i, c + ' wind']),
+  ...CN.map((c, i) => ['weather', 70 + i, c + ' pressure']),
+  ['neo',80,'Next approach closeness'],['neo',81,'Approaches this week'],['neo',82,'Hazardous this week'],['neo',83,'Largest size'],
+  ['donki',90,'Flares this week'],['donki',91,'Strongest flare'],['donki',92,'CMEs this week'],['donki',93,'Fastest CME'],
+  ['emsc',100,'Latest magnitude'],['emsc',101,'Quakes in last hour'],
+  ['xray',110,'Long-band flux (0.1 to 0.8 nm)'],['xray',111,'Short-band flux (0.05 to 0.4 nm)'],['xray',112,'Flare class'],
+  ['scales',102,'Radio blackout (R)'],['scales',103,'Solar radiation (S)'],['scales',104,'Geomagnetic storm (G)'],['scales',105,'Highest scale'],['scales',106,'Geomagnetic storm tomorrow'],['scales',107,'Proton flux (10 MeV and up)']
+];
+const RT = {}, ST = {};
+for (const [id, n] of STREAMS) RT[id + ':' + n] = { mode: 'cc', ch: 0, cc: n, lo: 0, hi: 100, inv: 0, sm: 0, on: 1 };
+for (const m of MODS) { m.notes = 1; m.np = { ...NP0[m.id] }; m.flt = { p: '', lo: 0, hi: 100 }; }
+const snap = () => ({ RT, mods: MODS.map(m => ({ id: m.id, on: m.on, ch: m.ch, notes: m.notes, np: m.np, flt: m.flt })) });
+function restore(o) {
+  if (!o) return;
+  for (const k in (o.RT || {})) if (RT[k]) Object.assign(RT[k], o.RT[k]);
+  for (const x of (o.mods || [])) { const m = byId(x.id); if (!m) continue; m.on = x.on; m.ch = x.ch; m.notes = x.notes; Object.assign(m.np, x.np); Object.assign(m.flt, x.flt); }
+}
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(snap())); } catch (e) {} };
+try { restore(JSON.parse(localStorage.getItem(KEY))); } catch (e) {}
+const getPath = (o, p) => p.split('.').reduce((a, k) => a[k], o);
+const setPath = (o, p, v) => { const a = p.split('.'), l = a.pop(); a.reduce((x, k) => x[k], o)[l] = v; };
+const readEl = el => el.type === 'checkbox' ? (el.checked ? 1 : 0) : (el.type === 'number' || el.type === 'range' || el.dataset.n) ? +el.value : el.value;
+const syncAll = root => root.querySelectorAll('[data-f]').forEach(el => {
+  const o = el.dataset.m ? byId(el.dataset.m) : RT[el.dataset.k], v = getPath(o, el.dataset.f);
+  if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
+});
+function noteUI(m) {
+  const o = blank => (blank != null ? `<option value="">${blank}</option>` : '') + Object.entries(P[m.id]).map(([k, l]) => `<option value="${k}">${l}</option>`).join('');
+  const sel = (p, h, n) => `<select data-m="${m.id}" data-f="${p}"${n ? ' data-n="1"' : ''}>${h}</select>`;
+  const inp = (p, a, b) => `<input type="number" data-m="${m.id}" data-f="${p}" min="${a}" max="${b}">`;
+  const chk = p => `<input type="checkbox" data-m="${m.id}" data-f="${p}">`;
+  const rng = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => `<option>${a + i}</option>`).join('');
+  return `<details><summary>Note output</summary><div class="npg">
+    <label>${chk('notes')} Send notes</label>
+    <label>Pitch from ${sel('np.pitch', o())} ${chk('np.pinv')} invert</label>
+    <label>Velocity from ${sel('np.vel', o('Fixed'))} ${inp('np.vmin', 1, 127)} to ${inp('np.vmax', 1, 127)}</label>
+    <label>Length from ${sel('np.dur', o('Fixed'))} ${inp('np.dmin', 20, 8000)} to ${inp('np.dmax', 20, 8000)} ms</label>
+    <label>Pan (CC10) from ${sel('np.pan', o('None'))}</label>
+    <label>Span ${sel('np.span', rng(1, 5), 1)} octaves, starting ${sel('np.off', rng(-2, 5), 1)} above the lowest</label>
+    <label>Only play when ${sel('flt.p', o('Always'))} is ${inp('flt.lo', 0, 100)} to ${inp('flt.hi', 0, 100)} %</label>
+  </div></details>`;
+}
+
+/* ---------- render cards ---------- */
+const cardsEl = $('#cards');
+for (const m of MODS) {
+  const el = document.createElement('section');
+  el.className = 'card'; el.id = 'card-' + m.id; el.dataset.g = GROUP[m.id];
+  el.style.setProperty('--c', `var(${m.color})`);
+  el.innerHTML = `
+    <header>
+      <h3><span class="dot" id="dot-${m.id}"></span>${m.name}</h3>
+      <label class="row ctl" style="gap:6px"><span class="src">On</span><input type="checkbox" id="on-${m.id}" ${m.on?'checked':''} aria-label="Enable ${m.name}"></label>
+    </header>
+    <div class="row"><span class="src">${m.src}</span>
+      <label class="ctl row" style="gap:6px"><span class="src">Note channel</span><select id="ch-${m.id}">${Array.from({length:16},(_, i)=>`<option ${i+1===m.ch?'selected':''}>${i+1}</option>`).join('')}</select></label></div>
+    <div class="ro" id="ro-${m.id}">Waiting for data…</div>
+    <div class="status" id="st-${m.id}">Starting…</div>
+    ${m.extra}${noteUI(m)}
+    <div class="ccmap">${m.cc}</div>`;
+  cardsEl.appendChild(el); el.classList.toggle('off', !m.on); syncAll(el);
+  m.count = 0;
+  $('#on-' + m.id).addEventListener('change', e => {
+    m.on = e.target.checked; el.classList.toggle('off', !m.on); persist();
+    if (m.on) { resendAll(); onEnable(m.id); }
+  });
+  $('#ch-' + m.id).addEventListener('change', e => { m.ch = +e.target.value; resendAll(); persist(); });
+}
+const setRO = (id, t) => { $('#ro-' + id).textContent = t; };
+const setStatus = (id, t, err) => { const e = $('#st-' + id); e.textContent = t; e.classList.toggle('err', !!err); };
+function flash(id, delay = 0) {
+  setTimeout(() => {
+    const d = $('#dot-' + id); d.classList.add('hit');
+    setTimeout(() => d.classList.remove('hit'), 120);
+  }, delay);
+}
+
+/* ---------- log ---------- */
+const logEl = $('#log');
+function log(id, text) {
+  const m = byId(id);
+  const d = document.createElement('div');
+  d.innerHTML = `<b style="color:var(${m.color})">${m.name}</b> ${text}`;
+  logEl.prepend(d);
+  while (logEl.children.length > 80) logEl.lastChild.remove();
+}
+
+/* ---------- MIDI ---------- */
+const MON = [], MF = { mods: {}, types: { note: 1, cc: 1, bend: 1, at: 1 }, ch: 0, q: '', paused: false };
+MODS.forEach(m => { MF.mods[m.id] = 1; });
+try { const sv = JSON.parse(localStorage.getItem('earthmidi-monfilter')); if (sv) { Object.assign(MF.mods, sv.mods); Object.assign(MF.types, sv.types); MF.ch = sv.ch || 0; MF.q = sv.q || ''; } } catch (e) {}
+function mon(b, label, id) {
+  const st = b[0] & 0xF0, c = (b[0] & 15) + 1;
+  const type = st === 0x90 ? 'note' : st === 0xB0 ? 'cc' : st === 0xE0 ? 'bend' : 'at';
+  const body = type === 'note' ? `note ${nn(b[1])} v${b[2]}` : type === 'cc' ? `CC${b[1]} = ${b[2]}` : type === 'bend' ? `bend ${b[1] | (b[2] << 7)}` : `aftertouch ${b[1]}`;
+  MON.unshift({ id, c, type, text: `ch${c}  ${body}` + (label ? `  ${label}` : '') });
+  if (MON.length > 400) MON.length = 400;
+}
+function tx(b, t, show, label, id) {
+  if (S.out) S.out.send(b, t);
+  if (!show) return;
+  const dl = t ? t - performance.now() : 0;
+  if (dl > 20) setTimeout(() => mon(b, label, id), dl); else mon(b, label, id);
+}
+function monLines(n) {
+  const q = MF.q.trim().toLowerCase(), out = [];
+  for (const m of MON) {
+    if (!MF.mods[m.id] || !MF.types[m.type] || (MF.ch && m.c !== MF.ch) || (q && !m.text.toLowerCase().includes(q))) continue;
+    out.push(m.text); if (out.length >= n) break;
+  }
+  return out;
+}
+function play(id, note, vel, dur, delay = 0, pan = null, label = '') {
+  const m = byId(id); if (!m.on || !m.notes || S.paused) return;
+  if (delay > 600) { const g = S.gen; setTimeout(() => { if (g === S.gen) play(id, note, vel, dur, 400, pan, label); }, delay - 400); return; }
+  note = clamp(Math.round(note), 0, 127); vel = clamp(Math.round(vel), 1, 127); dur = dur * S.len;
+  const t = performance.now() + delay, ch = m.ch - 1, sh = delay < 50;
+  if (pan != null) tx([0xB0 | ch, 10, clamp(Math.round(pan), 0, 127)], t, 0);
+  tx([0x90 | ch, note, vel], t, 1, label, id);
+  tx([0x80 | ch, note, 0], t + dur, 0);
+  m.count++; flash(id, delay);
+}
+function fire(id, b, delay = 0, label = '') {
+  const m = byId(id); if (!m.on || !m.notes || S.paused) return null;
+  const n = m.np, f = m.flt;
+  if (f.p && b[f.p] != null) { const v = b[f.p] * 100; if (v < f.lo || v > f.hi) return null; }
+  const g = k => n[k] ? b[n[k]] : .5;
+  const note = noteFrom(n.pinv ? 1 - g('pitch') : g('pitch'), n.span, n.off);
+  play(id, note, n.vmin + g('vel') * (n.vmax - n.vmin), n.dmin + g('dur') * (n.dmax - n.dmin), delay, n.pan ? b[n.pan] * 127 : null, label);
+  return note;
+}
+function setCC(id, num, val) { (ST[id + ':' + num] ||= { tgt: 0, cur: null, sent: null }).tgt = clamp(val, 0, 127); }
+function resendAll() { for (const k in ST) ST[k].sent = null; }
+let pumpN = 0;
+function pump() {
+  pumpN++;
+  for (const [id, num, lab] of STREAMS) {
+    const k = id + ':' + num, s = ST[k]; if (!s) continue;
+    const r = RT[k], m = byId(id);
+    let v = clamp((s.tgt / 127 - r.lo / 100) / Math.max(.001, (r.hi - r.lo) / 100), 0, 1);
+    if (r.inv) v = 1 - v;
+    s.cur = s.cur == null ? v : s.cur + (v - s.cur) * (1 - r.sm / 100);
+    if (pumpN % 4 === 0) { const b = document.getElementById('b-' + k); if (b) b.style.width = (s.cur * 100) + '%'; }
+    if (!m.on || !r.on || r.mode === 'off' || S.paused) continue;
+    const ch = (r.ch || m.ch) - 1, d = Math.round(s.cur * 127), q = r.mode === 'bend' ? Math.round(s.cur * 16383) : d;
+    const sig = `${r.mode}:${ch}:${r.cc}:${q}`;
+    if (s.sent === sig) continue;
+    s.sent = sig;
+    if (r.mode === 'cc') tx([0xB0 | ch, r.cc, d], 0, 1, id + ' ' + lab, id);
+    else if (r.mode === 'bend') tx([0xE0 | ch, q & 127, q >> 7], 0, 1, id + ' ' + lab, id);
+    else tx([0xD0 | ch, d], 0, 1, id + ' ' + lab, id);
+  }
+}
+function mapUI() {
+  const box = $('#maps'), opt = Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
+  for (const m of MODS) {
+    const rows = STREAMS.filter(x => x[0] === m.id);
+    const d = document.createElement('details'); d.className = 'mp'; d.dataset.g = GROUP[m.id]; d.open = m.id !== 'weather'; d.style.setProperty('--c', `var(${m.color})`);
+    const c = (k, f, h, n) => `<td><${h[0]} data-k="${k}" data-f="${f}"${h[1] || ''}>${h[2] || ''}</${h[0]}></td>`;
+    d.innerHTML = `<summary>${m.name} <span class="src">${rows.length} streams</span></summary><div class="tw"><table>
+      <tr><th></th><th>Stream</th><th>Send as</th><th>Channel</th><th>CC</th><th>Range %</th><th>Invert</th><th>Smooth</th><th>On</th></tr>` +
+      rows.map(([id, n, label]) => { const k = id + ':' + n; return `<tr><td><div class="bar"><i id="b-${k}"></i></div></td><td>${label}</td>
+        ${c(k, 'mode', ['select', '', '<option value="cc">CC</option><option value="bend">Pitch bend</option><option value="at">Aftertouch</option><option value="off">Off</option>'])}
+        ${c(k, 'ch', ['select', '', '<option value="0">Follow</option>' + opt])}
+        ${c(k, 'cc', ['input', ' type="number" min="0" max="127"'])}
+        <td><input type="number" data-k="${k}" data-f="lo" min="0" max="100"> to <input type="number" data-k="${k}" data-f="hi" min="0" max="100"></td>
+        ${c(k, 'inv', ['input', ' type="checkbox"'])}
+        ${c(k, 'sm', ['input', ' type="range" min="0" max="95"'])}
+        ${c(k, 'on', ['input', ' type="checkbox"'])}</tr>`; }).join('') + '</table></div>';
+    box.appendChild(d);
+  }
+  syncAll(box);
+}
+const onEdit = e => {
+  const el = e.target, v = el.dataset.f && readEl(el);
+  if (!el.dataset.f) return;
+  if (el.dataset.k) { RT[el.dataset.k][el.dataset.f] = el.dataset.f === 'mode' ? el.value : v; if (ST[el.dataset.k]) ST[el.dataset.k].sent = null; }
+  else if (el.dataset.m) setPath(byId(el.dataset.m), el.dataset.f, v);
+  persist();
+};
+for (const id of ['#maps', '#cards']) { $(id).addEventListener('input', onEdit); $(id).addEventListener('change', onEdit); }
+$('#btn-exp').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(snap(), null, 1)], { type: 'application/json' }));
+  a.download = 'earth-midi-mapping.json'; a.click();
+});
+$('#btn-imp').addEventListener('click', () => $('#file-imp').click());
+$('#file-imp').addEventListener('change', async e => {
+  try { restore(JSON.parse(await e.target.files[0].text())); persist(); location.reload(); } catch (x) { alert('That file is not a valid mapping.'); }
+});
+$('#btn-rst').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch (e) {} location.reload(); });
+
+function panic() {
+  if (!S.out) return;
+  for (let c = 0; c < 16; c++) { S.out.send([0xB0 | c, 123, 0]); S.out.send([0xB0 | c, 120, 0]); }
+}
+
+async function initMidi() {
+  const st = $('#midi-state');
+  if (!navigator.requestMIDIAccess) {
+    st.className = 'midi-state bad';
+    st.textContent = 'This browser does not support Web MIDI. Use Chrome or Edge on desktop.';
+    return;
+  }
+  try {
+    S.midi = await navigator.requestMIDIAccess();
+    S.midi.onstatechange = refreshPorts;
+    refreshPorts();
+  } catch (e) {
+    st.className = 'midi-state bad';
+    st.textContent = 'MIDI access was blocked. Allow it in the browser’s site settings, then press Connect MIDI.';
+  }
+}
+function refreshPorts() {
+  const sel = $('#port'), prev = sel.value;
+  sel.innerHTML = '<option value="">No port (preview only)</option>';
+  let loop = null;
+  for (const o of S.midi.outputs.values()) {
+    const opt = document.createElement('option');
+    opt.value = o.id; opt.textContent = o.name; sel.appendChild(opt);
+    if (!loop && /loopmidi/i.test(o.name)) loop = o.id;
+  }
+  const keep = prev && S.midi.outputs.has(prev) ? prev : (loop || '');
+  sel.value = keep;
+  setPort();
+}
+function setPort() {
+  const id = $('#port').value;
+  S.out = id && S.midi ? S.midi.outputs.get(id) : null;
+  const st = $('#midi-state');
+  if (S.out) { st.className = 'midi-state ok'; st.textContent = 'Sending to ' + S.out.name; resendAll(); }
+  else if (S.midi) { st.className = 'midi-state bad'; st.textContent = S.midi.outputs.size ? 'Choose an output port.' : 'No MIDI outputs found. Create a port in loopMIDI.'; }
+}
+$('#port').addEventListener('change', setPort);
+$('#btn-connect').addEventListener('click', initMidi);
+$('#btn-panic').addEventListener('click', panic);
+function setPaused(p) {
+  if (p === S.paused) return;
+  S.paused = p; S.gen++;
+  document.body.classList.toggle('paused', p);
+  const b = $('#btn-pp'); b.textContent = p ? '▶ Resume' : '❚❚ Pause all'; b.setAttribute('aria-pressed', p);
+  if (p) { panic(); setTimeout(() => { if (S.paused) panic(); }, 450); }
+  else { resendAll(); MODS.forEach(m => onEnable(m.id)); }
+}
+const togglePause = () => setPaused(!S.paused);
+$('#btn-pp').addEventListener('click', togglePause);
+$('#btn-test').addEventListener('click', () => {
+  [0, 2, 4].forEach((d, i) => play(MODS[0].id, scaleDeg(d, 1), 100, 600, i * 160, null, 'test chord'));
+});
+
+/* musical settings */
+const rootSel = $('#root'), scaleSel = $('#scale');
+NN.forEach((n, i) => rootSel.add(new Option(n, i)));
+Object.keys(SCALES).forEach(k => scaleSel.add(new Option(k, k)));
+rootSel.addEventListener('change', () => S.root = +rootSel.value);
+scaleSel.addEventListener('change', () => S.scale = scaleSel.value);
+$('#oct').addEventListener('change', e => S.oct = +e.target.value);
+$('#len').addEventListener('input', e => { S.len = e.target.value / 100; $('#len-o').textContent = e.target.value + '%'; });
+
+/* ---------- map ---------- */
+const cv = $('#map'), ctx = cv.getContext('2d');
+const MAP = { dayQuakes: [], events: [], pulses: [], trail: [], iss: null };
+const CITIES = [['Reykjavík',64.15,-21.94],['London',51.51,-0.13],['New York',40.71,-74.0],['São Paulo',-23.55,-46.63],
+                ['Cape Town',-33.92,18.42],['Mumbai',19.08,72.88],['Tokyo',35.68,139.69],['Sydney',-33.87,151.21]];
+const fsEl = $('.mapwrap');
+const isFS = () => document.fullscreenElement === fsEl || fsEl.classList.contains('pfs');
+function sizeCanvas() {
+  cv.style.width = isFS() ? Math.min(innerWidth, innerHeight * 2) + 'px' : '100%';
+  const w = cv.clientWidth, dpr = window.devicePixelRatio || 1;
+  cv.width = w * dpr; cv.height = (w / 2) * dpr;
+  cv.style.height = (w / 2) + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+function syncFS() { fsEl.classList.toggle('fs', isFS()); $('#btn-fs').textContent = isFS() ? 'Exit full screen' : 'Full screen'; sizeCanvas(); }
+function toggleFS() {
+  if (isFS()) { if (document.fullscreenElement) document.exitFullscreen(); fsEl.classList.remove('pfs'); syncFS(); }
+  else if (fsEl.requestFullscreen) fsEl.requestFullscreen().catch(() => { fsEl.classList.add('pfs'); syncFS(); });
+  else { fsEl.classList.add('pfs'); syncFS(); }
+}
+document.addEventListener('fullscreenchange', syncFS);
+$('#btn-fs').addEventListener('click', toggleFS);
+addEventListener('keydown', e => {
+  if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || $('#help').open) return;
+  if (e.key === 'f' || e.key === 'F') toggleFS();
+  if (e.key === ' ' && document.activeElement.tagName !== 'BUTTON') { e.preventDefault(); togglePause(); }
+  if (e.key === '?') $('#help').showModal();
+  if (e.key === 'Escape') closePop();
+  if (e.key === 'Escape' && fsEl.classList.contains('pfs')) toggleFS();
+});
+let idleT; fsEl.addEventListener('mousemove', () => { fsEl.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => fsEl.classList.add('idle'), 3000); });
+
+const LY = { land: 1, grid: 1, term: 1, quakes: 1, events: 1, cities: 1, iss: 1, track: 1, moon: 1, sun: 1, pulses: 1 };
+try { Object.assign(LY, JSON.parse(localStorage.getItem('earthmidi-layers'))); } catch (e) {}
+document.querySelectorAll('[data-l]').forEach(el => {
+  el.checked = !!LY[el.dataset.l];
+  el.addEventListener('change', () => { LY[el.dataset.l] = el.checked ? 1 : 0; try { localStorage.setItem('earthmidi-layers', JSON.stringify(LY)); } catch (e) {} });
+});
+function moonPoint() {
+  const n = Date.now() / 864e5 + 2440587.5 - 2451545.0, R = Math.PI / 180;
+  const L = (218.316 + 13.176396 * n) % 360, M = (134.963 + 13.064993 * n) % 360, F = (93.272 + 13.22935 * n) % 360;
+  const l = (L + 6.289 * Math.sin(M * R)) * R, b = 5.128 * Math.sin(F * R) * R, eps = 23.439 * R;
+  const ra = Math.atan2(Math.sin(l) * Math.cos(eps) - Math.tan(b) * Math.sin(eps), Math.cos(l)) / R;
+  const dec = Math.asin(Math.sin(b) * Math.cos(eps) + Math.cos(b) * Math.sin(eps) * Math.sin(l)) / R;
+  const gmst = (280.46061837 + 360.98564736629 * n) % 360;
+  return { lat: dec, lon: ((((ra - gmst) % 360) + 360 + 180) % 360) - 180 };
+}
+function moonName(p) {
+  return p < .03 || p > .97 ? 'New moon' : p < .22 ? 'Waxing crescent' : p < .28 ? 'First quarter' : p < .47 ? 'Waxing gibbous'
+    : p < .53 ? 'Full moon' : p < .72 ? 'Waning gibbous' : p < .78 ? 'Last quarter' : 'Waning crescent';
+}
+function moonDisc(x, y, r, ph) {
+  const p = ph < .5 ? ph : 1 - ph, k = Math.cos(2 * Math.PI * p);
+  ctx.save(); ctx.translate(x, y); if (ph >= .5) ctx.scale(-1, 1);
+  ctx.fillStyle = '#2b3752'; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill();
+  ctx.fillStyle = '#eef3ff'; ctx.beginPath();
+  ctx.arc(0, 0, r, -Math.PI / 2, Math.PI / 2, false);
+  if (k >= 0) ctx.ellipse(0, 0, Math.abs(k) * r + .01, r, 0, Math.PI / 2, -Math.PI / 2, true);
+  else ctx.ellipse(0, 0, Math.abs(k) * r, r, 0, Math.PI / 2, Math.PI * 1.5, false);
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function issTrack() {
+  if (!I.fix || !I.vel) return [];
+  const R = Math.PI / 180, inc = 51.64 * R, a = 6371 + (I.alt || 420), T = 2 * Math.PI * Math.sqrt(a ** 3 / 398600.4);
+  let u0 = Math.asin(clamp(Math.sin(I.fix.lat * R) / Math.sin(inc), -1, 1)); if (I.vel.dlat < 0) u0 = Math.PI - u0;
+  const lonOf = u => Math.atan2(Math.cos(inc) * Math.sin(u), Math.cos(u)), out = [];
+  for (let m = 0; m <= 140; m++) {
+    const sec = m * 60, u = u0 + 2 * Math.PI * sec / T;
+    const lon = I.fix.lon + (lonOf(u) - lonOf(u0)) / R - 0.0041781 * sec;
+    out.push({ lat: Math.asin(Math.sin(inc) * Math.sin(u)) / R, lon: ((lon % 360) + 540) % 360 - 180, m });
+  }
+  return out;
+}
+
+/* click a dot for details */
+const SEL = { fn: null }, pop = $('#pop');
+const agoText = t => { const m = Math.round((Date.now() - t) / 60000); return m < 90 ? m + ' min ago' : (m / 60).toFixed(1) + ' h ago'; };
+function closePop() { pop.hidden = true; SEL.fn = null; }
+function showPop(ev, title, lines, act, label, link) {
+  const r = fsEl.getBoundingClientRect();
+  pop.innerHTML = `<h4>${title}</h4>${lines.join('<br>')}` + (link ? `<br><a href="${link}" target="_blank" rel="noopener" style="color:var(--iss)">Open page</a>` : '') +
+    `<br>${act ? `<button id="pop-act">${label || 'Play this'}</button>` : ''}<button id="pop-x">Close</button>`;
+  pop.hidden = false;
+  pop.style.left = clamp(ev.clientX - r.left + 14, 4, Math.max(4, r.width - 270)) + 'px';
+  pop.style.top = clamp(ev.clientY - r.top + 14, 4, Math.max(4, r.height - 190)) + 'px';
+  $('#pop-x').onclick = closePop;
+  if (act) $('#pop-act').onclick = act;
+}
+function pick(mx, my) {
+  const cw = cv.clientWidth, chh = cw / 2, K = Math.max(1, cw / 900);
+  let best = null, bd = (12 * K) ** 2;
+  const t = (lon, lat, o, w = 1) => { const dx = px(lon, cw) - mx, dy = py(lat, chh) - my, d = (dx * dx + dy * dy) * w; if (d < bd) { bd = d; best = { lon, lat, ...o }; } };
+  if (LY.quakes) for (const q of MAP.dayQuakes) t(q.lon, q.lat, { kind: 'quake', q });
+  if (LY.events) for (const e of MAP.events) t(e.lon, e.lat, { kind: 'event', e });
+  if (LY.cities) CITIES.forEach((c, i) => t(c[2], c[1], { kind: 'city', i }));
+  if (LY.track && I.track) for (const p of I.track) if (p.m && p.m % 30 === 0) t(p.lon, p.lat, { kind: 'track', p }, .5);
+  if (LY.iss && MAP.iss) t(MAP.iss.lon, MAP.iss.lat, { kind: 'iss' }, .35);
+  if (LY.sun) { const q = sunPoint(); t(q.lon, q.lat, { kind: 'sun' }, .35); }
+  if (LY.moon) { const q = moonPoint(); t(q.lon, q.lat, { kind: 'moon' }, .35); }
+  return best;
+}
+cv.addEventListener('click', ev => {
+  const r = cv.getBoundingClientRect(), b = pick(ev.clientX - r.left, ev.clientY - r.top);
+  if (!b) return closePop();
+  const pos = `${b.lat.toFixed(1)}°, ${b.lon.toFixed(1)}°`, fixed = { lon: b.lon, lat: b.lat };
+  SEL.fn = b.kind === 'iss' ? () => MAP.iss : b.kind === 'sun' ? sunPoint : b.kind === 'moon' ? moonPoint : () => fixed;
+  if (b.kind === 'quake') {
+    const q = b.q;
+    showPop(ev, `M${Math.max(0, q.mag).toFixed(1)} earthquake`, [q.place, `${q.depth.toFixed(0)} km deep`, agoText(q.t), pos], () => playQuake(q, 0, true), 'Play this quake', `https://earthquake.usgs.gov/earthquakes/eventpage/${q.id}`);
+  } else if (b.kind === 'event') {
+    const e = b.e;
+    showPop(ev, e.title, [`Category: ${e.cat}`, pos], () => {
+      fire('events', { lat: s01(e.lat, -90, 90), lon: s01(e.lon, -180, 180), cat: s01(Math.max(0, Object.keys(EV_DUR).indexOf(e.cat)), 0, 12), dur: s01(EV_DUR[e.cat] || 300, 150, 2000) }, 0, trim(e.cat + ': ' + e.title, 30));
+      pulse(e.lon, e.lat, colorOf(byId('events')), 7);
+    }, 'Play this event');
+  } else if (b.kind === 'city') {
+    const city = CITIES[b.i], c = W.data && W.data[b.i];
+    showPop(ev, city[0], c ? [`${c.temperature_2m.toFixed(1)}°C`, `Wind ${c.wind_speed_10m.toFixed(0)} km/h`, `${c.surface_pressure.toFixed(0)} hPa`, `Rain ${c.precipitation} mm`] : ['Waiting for weather data'],
+      c ? () => {
+        fire('weather', { temp: s01(c.temperature_2m, -10, 40), wind: s01(c.wind_speed_10m, 0, 50), press: s01(c.surface_pressure, 980, 1040), rain: s01(c.precipitation, 0, 5), lon: s01(city[2], -180, 180), lat: s01(city[1], -90, 90) }, 0, city[0] + ' ' + c.temperature_2m.toFixed(0) + '°C');
+        pulse(city[2], city[1], colorOf(byId('weather')), 8);
+      } : null, 'Play this chime');
+  } else if (b.kind === 'iss') {
+    showPop(ev, 'International Space Station', [pos, `Altitude ${I.alt.toFixed(1)} km`, `${Math.round(I.speed)} km/h`, `Visibility: ${I.vis || 'unknown'}`]);
+  } else if (b.kind === 'track') {
+    showPop(ev, `ISS in ${b.p.m} minutes`, [`Predicted over ${pos}`, 'Estimated from a simple orbit model, so it drifts over time.']);
+  } else if (b.kind === 'sun') {
+    showPop(ev, 'Sun', [`Directly overhead at ${pos}`, `Solar declination ${b.lat.toFixed(1)}°`]);
+  } else {
+    const ph = moonPhase();
+    showPop(ev, moonName(ph), [`${Math.round((1 - Math.cos(2 * Math.PI * ph)) / 2 * 100)}% illuminated`, `Directly overhead at ${pos}`, `${(ph * 29.53).toFixed(1)} days into the cycle`]);
+  }
+});
+
+let LAND = null;
+fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson').then(r => r.json()).then(g => {
+  LAND = [];
+  for (const f of g.features) for (const p of (f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates)) LAND.push(p[0]);
+}).catch(() => {});
+function sunPoint() {
+  const n = Date.now() / 864e5 + 2440587.5 - 2451545.0, R = Math.PI / 180;
+  const L = (280.46 + 0.9856474 * n) % 360, g = ((357.528 + 0.9856003 * n) % 360) * R;
+  const lam = (L + 1.915 * Math.sin(g) + 0.02 * Math.sin(2 * g)) * R, eps = 23.439 * R;
+  const dec = Math.asin(Math.sin(eps) * Math.sin(lam)), ra = Math.atan2(Math.cos(eps) * Math.sin(lam), Math.cos(lam)) / R;
+  const gmst = (280.46061837 + 360.98564736629 * n) % 360;
+  return { lat: dec / R, lon: ((((ra - gmst) % 360) + 360 + 180) % 360) - 180 };
+}
+window.addEventListener('resize', sizeCanvas); sizeCanvas();
+const px = (lon, W) => (lon + 180) / 360 * W;
+const py = (lat, H) => (90 - lat) / 180 * H;
+function pulse(lon, lat, color, size, delay = 0) {
+  MAP.pulses.push({ lon, lat, color, size, t0: performance.now() + delay });
+  if (MAP.pulses.length > 400) MAP.pulses.shift();
+}
+function dotAt(lon, lat, r, color, alpha = 1) {
+  const W = cv.clientWidth, H = W / 2;
+  ctx.globalAlpha = alpha; ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(px(lon, W), py(lat, H), r, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+}
+function draw() {
+  const W = cv.clientWidth, H = W / 2, now = performance.now(), K = Math.max(1, W / 900);
+  ctx.clearRect(0, 0, W, H);
+  if (LY.grid) {
+    ctx.strokeStyle = 'rgba(131,151,179,.14)'; ctx.lineWidth = 1;
+    for (let lon = -180; lon <= 180; lon += 30) { ctx.beginPath(); ctx.moveTo(px(lon, W), 0); ctx.lineTo(px(lon, W), H); ctx.stroke(); }
+    for (let lat = -90; lat <= 90; lat += 30) { ctx.beginPath(); ctx.moveTo(0, py(lat, H)); ctx.lineTo(W, py(lat, H)); ctx.stroke(); }
+    ctx.strokeStyle = 'rgba(131,151,179,.3)';
+    ctx.beginPath(); ctx.moveTo(0, py(0, H)); ctx.lineTo(W, py(0, H)); ctx.stroke();
+  }
+  if (LY.land && LAND) {
+    ctx.fillStyle = 'rgba(131,151,179,.13)'; ctx.strokeStyle = 'rgba(131,151,179,.4)'; ctx.lineWidth = .8;
+    for (const ring of LAND) {
+      ctx.beginPath();
+      ring.forEach(([lo, la], i) => { const x = px(lo, W), y = py(la, H); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+  }
+  const sun = sunPoint();
+  if (LY.term) {
+    const td = Math.tan(sun.lat * Math.PI / 180) || 1e-6, edge = sun.lat >= 0 ? H : 0;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 4) {
+      const lon = x / W * 360 - 180, lat = Math.atan(-Math.cos((lon - sun.lon) * Math.PI / 180) / td) * 180 / Math.PI;
+      x ? ctx.lineTo(x, py(lat, H)) : ctx.moveTo(x, py(lat, H));
+    }
+    ctx.lineTo(W, edge); ctx.lineTo(0, edge); ctx.closePath();
+    ctx.fillStyle = 'rgba(3,6,14,.5)'; ctx.fill();
+  }
+  const qc = colorOf(byId('quake')), ec = colorOf(byId('events')), wc = colorOf(byId('weather')), ic = colorOf(byId('iss'));
+  if (LY.quakes) for (const q of MAP.dayQuakes) dotAt(q.lon, q.lat, (0.8 + (q.mag || 0) * 0.45) * K, qc, 0.35);
+  if (LY.events) for (const e of MAP.events) dotAt(e.lon, e.lat, 2.2 * K, ec, 0.85);
+  if (LY.cities) for (const c of CITIES) dotAt(c[2], c[1], 2 * K, wc, 0.9);
+  if (LY.iss) {
+    if (MAP.trail.length > 1) {
+      ctx.strokeStyle = ic; ctx.lineWidth = 1.5 * K; ctx.globalAlpha = .5;
+      ctx.beginPath();
+      MAP.trail.forEach((p, i) => {
+        const x = px(p.lon, W), y = py(p.lat, H), prev = MAP.trail[i - 1];
+        if (!prev || Math.abs(p.lon - prev.lon) > 180) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke(); ctx.globalAlpha = 1;
+    }
+    if (MAP.iss) {
+      const x = px(MAP.iss.lon, W), y = py(MAP.iss.lat, H), r = 7 * K;
+      ctx.strokeStyle = ic; ctx.lineWidth = 1.5 * K;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.moveTo(x - r * 1.7, y); ctx.lineTo(x + r * 1.7, y); ctx.moveTo(x, y - r * 1.7); ctx.lineTo(x, y + r * 1.7); ctx.stroke();
+    }
+  }
+  if (LY.track && I.track && I.track.length) {
+    ctx.strokeStyle = ic; ctx.lineWidth = 1.2 * K; ctx.setLineDash([4 * K, 5 * K]);
+    I.track.forEach((p, i) => {
+      const q = I.track[i - 1]; if (!q || Math.abs(p.lon - q.lon) > 180) return;
+      ctx.globalAlpha = .65 * (1 - i / I.track.length);
+      ctx.beginPath(); ctx.moveTo(px(q.lon, W), py(q.lat, H)); ctx.lineTo(px(p.lon, W), py(p.lat, H)); ctx.stroke();
+    });
+    ctx.setLineDash([]); ctx.font = (10 * K) + 'px monospace';
+    for (const p of I.track) if (p.m && p.m % 30 === 0) {
+      dotAt(p.lon, p.lat, 2.2 * K, ic, .9); ctx.globalAlpha = .8; ctx.fillStyle = ic;
+      ctx.fillText('+' + p.m + 'm', px(p.lon, W) + 5 * K, py(p.lat, H) - 4 * K);
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (LY.moon) {
+    const mp = moonPoint(), mx = px(mp.lon, W), my = py(mp.lat, H);
+    ctx.fillStyle = '#dfe8ff'; ctx.globalAlpha = .18; ctx.beginPath(); ctx.arc(mx, my, 13 * K, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    moonDisc(mx, my, 6.5 * K, moonPhase());
+  }
+  if (LY.sun) {
+    const x = px(sun.lon, W), y = py(sun.lat, H);
+    ctx.fillStyle = '#ffd166'; ctx.globalAlpha = .25; ctx.beginPath(); ctx.arc(x, y, 14 * K, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(x, y, 5 * K, 0, 7); ctx.fill();
+  }
+  if (SEL.fn) {
+    const p = SEL.fn();
+    if (p) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 * K; ctx.globalAlpha = .6 + .4 * Math.sin(now / 160); ctx.beginPath(); ctx.arc(px(p.lon, W), py(p.lat, H), 11 * K, 0, 7); ctx.stroke(); ctx.globalAlpha = 1; }
+  }
+  MAP.pulses = MAP.pulses.filter(p => now - p.t0 < 1800);
+  if (LY.pulses) for (const p of MAP.pulses) {
+    const age = (now - p.t0) / 1800; if (age < 0) continue;
+    ctx.strokeStyle = p.color; ctx.globalAlpha = 1 - age; ctx.lineWidth = 2 * K;
+    ctx.beginPath(); ctx.arc(px(p.lon, W), py(p.lat, H), p.size * K * (0.4 + age * 2.6), 0, 7); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+/* ---------- data helpers ---------- */
+async function getJSON(u) {
+  const r = await fetch(u, { cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+const every = (fn, ms) => { fn(); return setInterval(fn, ms); };
+const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
+
+/* ---------- earthquakes ---------- */
+const USGS = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/';
+const Q = { seen: new Set(), day: [], loopTimer: null, first: true };
+const qMag = () => $('#q-mag').value;
+const toQuake = f => ({ id: f.id, t: f.properties.time, mag: f.properties.mag ?? 0, place: f.properties.place || 'unknown',
+  lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1], depth: f.geometry.coordinates[2] ?? 10 });
+
+function playQuake(e, delay, live) {
+  const m = byId('quake'); if (!m.on) return;
+  const mag = Math.max(0, e.mag);
+  const note = fire('quake', { mag: s01(mag, 0, 8), depth: s01(e.depth, 0, 300), lon: s01(e.lon, -180, 180), lat: s01(e.lat, -90, 90) }, delay, 'quake M' + mag.toFixed(1) + ' ' + trim(e.place));
+  if (note == null) return;
+  if (mag >= 5.5) play('quake', scaleDeg(0, -1), clamp(30 + mag * 14, 1, 127), (150 + mag * mag * 45) * 2.5, delay, null, 'big quake bass');
+  pulse(e.lon, e.lat, colorOf(m), 6 + mag * 4, delay);
+  if (live) log('quake', `M${mag.toFixed(1)} ${e.place}, ${e.depth.toFixed(0)} km deep, note ${nn(note)}`);
+}
+async function quakePoll() {
+  try {
+    const d = await getJSON(`${USGS}${qMag()}_hour.geojson`);
+    const list = d.features.map(toQuake).sort((a, b) => b.t - a.t);
+    for (const q of list) {
+      if (!Q.seen.has(q.id)) { Q.seen.add(q.id); if (!Q.first) playQuake(q, 0, true); }
+    }
+    Q.first = false;
+    if (list[0]) {
+      setCC('quake', 20, s01(list[0].mag, 0, 8) * 127);
+      const ago = Math.round((Date.now() - list[0].t) / 60000);
+      setRO('quake', `Latest: M${list[0].mag.toFixed(1)}, ${list[0].place}\n${ago} min ago, depth ${list[0].depth.toFixed(0)} km\n${list.length} in the last hour, ${Q.day.length} in the last 24 h`);
+    } else setRO('quake', 'No quakes at this magnitude in the last hour.');
+    setCC('quake', 21, s01(list.length, 0, 60) * 127);
+    setStatus('quake', 'Live. Checking every 30 seconds.');
+  } catch (e) { setStatus('quake', 'Could not reach USGS: ' + e.message, true); }
+}
+async function quakeDay() {
+  try {
+    const d = await getJSON(`${USGS}${qMag()}_day.geojson`);
+    Q.day = d.features.map(toQuake).sort((a, b) => a.t - b.t);
+    MAP.dayQuakes = Q.day;
+    quakeLoop();
+  } catch (e) { setStatus('quake', 'Could not load 24 hour history: ' + e.message, true); }
+}
+function quakeLoop() {
+  clearTimeout(Q.loopTimer);
+  if (!$('#q-replay').checked || !byId('quake').on || !Q.day.length) return;
+  const L = +$('#q-loop').value * 1000, start = Date.now() - 86400000;
+  for (const e of Q.day) playQuake(e, s01(e.t, start, Date.now()) * L, false);
+  Q.loopTimer = setTimeout(quakeLoop, L);
+}
+$('#q-mag').addEventListener('change', () => { Q.seen.clear(); Q.first = true; quakePoll(); quakeDay(); });
+$('#q-replay').addEventListener('change', quakeLoop);
+$('#q-loop').addEventListener('input', e => { $('#q-loop-o').textContent = e.target.value + ' s'; });
+$('#q-loop').addEventListener('change', quakeLoop);
+
+/* ---------- ISS ---------- */
+const I = { fix: null, vel: null, bin: null, alt: 0, vis: '', speed: 0 };
+async function issPoll() {
+  try {
+    const d = await getJSON('https://api.wheretheiss.at/v1/satellites/25544');
+    const now = performance.now(), fix = { lat: d.latitude, lon: d.longitude, t: now };
+    if (I.fix) {
+      const dt = now - I.fix.t; let dl = fix.lon - I.fix.lon;
+      if (dl > 180) dl -= 360; if (dl < -180) dl += 360;
+      if (dt > 0) I.vel = { dlat: (fix.lat - I.fix.lat) / dt, dlon: dl / dt };
+    }
+    I.fix = fix; I.alt = d.altitude; I.vis = d.visibility; I.speed = d.velocity; I.track = issTrack();
+    setStatus('iss', 'Live. Position updates every 5 seconds, smoothed between updates.');
+  } catch (e) { setStatus('iss', 'Could not reach the ISS tracker: ' + e.message, true); }
+}
+function issTick() {
+  if (!I.fix) return;
+  const el = performance.now() - I.fix.t;
+  let lat = I.fix.lat, lon = I.fix.lon;
+  if (I.vel && el < 15000) { lat += I.vel.dlat * el; lon += I.vel.dlon * el; }
+  lat = clamp(lat, -90, 90); lon = ((lon + 540) % 360) - 180;
+  MAP.iss = { lat, lon };
+  if (!MAP.trail.length || performance.now() - (issTick.lastTrail || 0) > 4000) {
+    MAP.trail.push({ lat, lon }); issTick.lastTrail = performance.now();
+    if (MAP.trail.length > 90) MAP.trail.shift();
+  }
+  setCC('iss', 20, s01(lat, -90, 90) * 127);
+  setCC('iss', 21, s01(lon, -180, 180) * 127);
+  setCC('iss', 22, s01(I.alt, 400, 430) * 127);
+  setCC('iss', 23, I.vis === 'daylight' ? 127 : I.vis === 'visible' ? 64 : 0);
+  const deg = +$('#iss-deg').value, bin = Math.floor((lon + 180) / deg);
+  if (I.bin != null && bin !== I.bin) {
+    const note = fire('iss', { lat: s01(lat, -90, 90), lon: s01(lon, -180, 180), day: I.vis === 'daylight' ? 1 : I.vis === 'visible' ? .5 : 0 }, 0, 'ISS crossing ' + lon.toFixed(0) + '° lon');
+    if (note != null) { pulse(lon, lat, colorOf(byId('iss')), 8); log('iss', `${lat.toFixed(1)}°, ${lon.toFixed(1)}°, note ${nn(note)}`); }
+  }
+  I.bin = bin;
+  if (!issTick.ro || performance.now() - issTick.ro > 500) {
+    issTick.ro = performance.now();
+    setRO('iss', `Lat ${lat.toFixed(2)}°  Lon ${lon.toFixed(2)}°\nAltitude ${I.alt.toFixed(1)} km, ${Math.round(I.speed)} km/h\n${I.vis || ''}`);
+  }
+}
+$('#iss-deg').addEventListener('change', () => { I.bin = null; });
+
+/* ---------- space weather ---------- */
+const SW = 'https://services.swpc.noaa.gov/';
+const Sp = { kp: null, series: [], loopTimer: null };
+const table = arr => {
+  const h = arr[0]; return arr.slice(1).map(r => Object.fromEntries(h.map((k, i) => [k, r[i]])));
+};
+const SWH = ['https://services.swpc.noaa.gov/', 'https://services.swpc.woc.noaa.gov/'];
+async function getSW(path) {
+  let err;
+  for (const h of SWH.slice()) {
+    try {
+      const d = await getJSON(h + path);
+      if (SWH[0] !== h) { SWH.splice(SWH.indexOf(h), 1); SWH.unshift(h); }
+      return d;
+    } catch (e) { err = e; }
+  }
+  throw err;
+}
+async function spacePoll() {
+  const bad = [];
+  const tryGet = async (name, paths) => {
+    for (const p of paths) { try { return await getSW(p); } catch (e) {} }
+    bad.push(name); return null;
+  };
+  const [kpA, plA, mgA] = await Promise.all([
+    tryGet('Kp index', ['json/planetary_k_index_1m.json', 'products/noaa-planetary-k-index.json']),
+    tryGet('solar wind', ['products/solar-wind/plasma-2-hour.json']),
+    tryGet('magnetic field', ['products/solar-wind/mag-2-hour.json'])
+  ]);
+  if (bad.length === 3) { setStatus('space', 'Could not reach NOAA. Check your connection or ad blocker. Retrying every minute.', true); return; }
+  try {
+    let kp = null;
+    if (kpA && kpA.length) {
+      if (Array.isArray(kpA[0])) { const t = table(kpA), last = t[t.length - 1]; kp = num(last.Kp ?? last.kp); }
+      else { const last = kpA[kpA.length - 1]; kp = num(last.estimated_kp ?? last.kp_index ?? last.Kp ?? last.kp); }
+    }
+    const pl = plA ? table(plA) : [], mg = mgA ? table(mgA) : [];
+    const bzBy = new Map(mg.map(r => [r.time_tag, r]));
+    Sp.series = pl.map(r => ({ speed: num(r.speed), density: num(r.density), bz: num(bzBy.get(r.time_tag)?.bz_gsm) }))
+                  .filter(r => r.speed != null && r.density != null);
+    const lastP = Sp.series[Sp.series.length - 1];
+    const lastM = [...mg].reverse().find(r => num(r.bt) != null);
+    if (kp != null) {
+      setCC('space', 30, s01(kp, 0, 9) * 127);
+      if (Sp.kp != null && Math.abs(kp - Sp.kp) >= 0.33) {
+        const n = clamp(1 + Math.floor(kp / 1.5), 1, 6);
+        for (let k = 0; k < n; k++) play('space', scaleDeg(2 * k, 0), 70 + k * 8, 4000, k * 120, null, 'Kp chord');
+        log('space', `Kp moved from ${Sp.kp.toFixed(1)} to ${kp.toFixed(1)}, ${n}-note chord`);
+      }
+      Sp.kp = kp;
+    }
+    if (lastP) { setCC('space', 31, s01(lastP.speed, 250, 900) * 127); setCC('space', 33, s01(lastP.density, 0, 30) * 127); }
+    if (lastP && lastP.bz != null) setCC('space', 32, s01(lastP.bz, -20, 20) * 127);
+    if (lastM) setCC('space', 34, s01(num(lastM.bt), 0, 30) * 127);
+    setRO('space', `Kp ${kp != null ? kp.toFixed(1) : 'n/a'}\nSolar wind ${lastP ? lastP.speed.toFixed(0) : 'n/a'} km/s, ${lastP ? lastP.density.toFixed(1) : 'n/a'} p/cm³\nBz ${lastP && lastP.bz != null ? lastP.bz.toFixed(1) : 'n/a'} nT, moon ${(moonPhase() * 100).toFixed(0)}% through its cycle`);
+    setStatus('space', bad.length ? 'Partly live. Unavailable: ' + bad.join(', ') + '. Retrying every minute.' : 'Live. Checking every minute.', !!bad.length);
+    spaceLoop(true);
+  } catch (e) { setStatus('space', 'Could not reach NOAA: ' + e.message, true); }
+}
+function spaceLoop(fromPoll) {
+  clearTimeout(Sp.loopTimer);
+  if (!$('#sp-replay').checked || !byId('space').on || !Sp.series.length) return;
+  if (fromPoll && spaceLoop.running) return;
+  spaceLoop.running = true;
+  const L = +$('#sp-loop').value * 1000, n = Sp.series.length;
+  Sp.series.forEach((r, i) => {
+    fire('space', { speed: s01(r.speed, 250, 700), density: s01(r.density, 0, 20), bz: r.bz == null ? .5 : s01(r.bz, -20, 20) }, i / n * L, 'solar wind ' + Math.round(r.speed) + ' km/s');
+  });
+  Sp.loopTimer = setTimeout(() => { spaceLoop.running = false; spaceLoop(false); }, L);
+}
+$('#sp-replay').addEventListener('change', () => { spaceLoop.running = false; spaceLoop(false); });
+$('#sp-loop').addEventListener('input', e => { $('#sp-loop-o').textContent = e.target.value + ' s'; });
+$('#sp-loop').addEventListener('change', () => { spaceLoop.running = false; spaceLoop(false); });
+
+function moonPhase() {
+  const ref = Date.UTC(2000, 0, 6, 18, 14), syn = 29.530588853;
+  return (((Date.now() - ref) / 86400000) % syn) / syn;
+}
+
+/* ---------- natural events ---------- */
+const EV_DUR = { wildfires: 150, volcanoes: 1200, severeStorms: 600, seaLakeIce: 1800, floods: 400, dustHaze: 500,
+                 drought: 2000, landslides: 250, earthquakes: 300, snow: 400, tempExtremes: 700, waterColor: 900, manmade: 200 };
+const E = { step: 0, timer: null };
+async function eventsPoll() {
+  try {
+    const d = await getJSON('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=300');
+    const list = [];
+    for (const ev of d.events) {
+      const g = ev.geometry[ev.geometry.length - 1]; if (!g) continue;
+      let c = g.coordinates; while (Array.isArray(c[0])) c = c[0];
+      if (typeof c[0] !== 'number') continue;
+      list.push({ title: ev.title, cat: ev.categories[0]?.id || 'other', lon: c[0], lat: c[1] });
+    }
+    list.sort((a, b) => a.lon - b.lon);
+    MAP.events = list; E.list = list;
+    const cnt = id => list.filter(e => e.cat === id).length;
+    setCC('events', 40, Math.min(127, cnt('wildfires') * 3));
+    setCC('events', 41, Math.min(127, cnt('volcanoes') * 8));
+    setCC('events', 42, Math.min(127, cnt('severeStorms') * 8));
+    setCC('events', 43, Math.min(127, list.length * 2));
+    setStatus('events', `${list.length} open events. Refreshes every 10 minutes.`);
+    if (!E.timer) eventStep();
+  } catch (e) { setStatus('events', 'Could not reach NASA EONET: ' + e.message, true); }
+}
+function eventStep() {
+  const bpm = +$('#ev-bpm').value;
+  const list = E.list || [];
+  if (list.length && byId('events').on && !S.paused) {
+    const e = list[E.step % list.length]; E.step++;
+    const note = fire('events', { lat: s01(e.lat, -90, 90), lon: s01(e.lon, -180, 180),
+      cat: s01(Math.max(0, Object.keys(EV_DUR).indexOf(e.cat)), 0, 12), dur: s01(EV_DUR[e.cat] || 300, 150, 2000) }, 0, trim(e.cat + ': ' + e.title, 30));
+    if (note != null) {
+      pulse(e.lon, e.lat, colorOf(byId('events')), 7);
+      setRO('events', `${e.title}\n${e.cat}, ${e.lat.toFixed(1)}°, ${e.lon.toFixed(1)}°\nNote ${nn(note)}, step ${(E.step - 1) % list.length + 1} of ${list.length}`);
+    }
+  }
+  E.timer = setTimeout(eventStep, 60000 / bpm / 2);
+}
+$('#ev-bpm').addEventListener('input', e => { $('#ev-bpm-o').textContent = e.target.value + ' bpm'; });
+
+/* ---------- weather ---------- */
+const W = { data: null, i: 0 };
+async function weatherPoll() {
+  try {
+    const lats = CITIES.map(c => c[1]).join(','), lons = CITIES.map(c => c[2]).join(',');
+    const d = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,wind_speed_10m,surface_pressure,precipitation&wind_speed_unit=kmh`);
+    W.data = (Array.isArray(d) ? d : [d]).map(x => x.current);
+    W.data.forEach((c, i) => {
+      setCC('weather', 50 + i, s01(c.temperature_2m, -20, 45) * 127);
+      setCC('weather', 60 + i, s01(c.wind_speed_10m, 0, 60) * 127);
+      setCC('weather', 70 + i, s01(c.surface_pressure, 980, 1040) * 127);
+    });
+    setStatus('weather', 'Live. Refreshes every 10 minutes.');
+  } catch (e) { setStatus('weather', 'Could not reach Open-Meteo: ' + e.message, true); }
+}
+function weatherChime() {
+  if (!W.data || !byId('weather').on || S.paused) return;
+  const i = W.i++ % CITIES.length, c = W.data[i], city = CITIES[i];
+  if (!c) return;
+  const note = fire('weather', { temp: s01(c.temperature_2m, -10, 40), wind: s01(c.wind_speed_10m, 0, 50), press: s01(c.surface_pressure, 980, 1040),
+    rain: s01(c.precipitation, 0, 5), lon: s01(city[2], -180, 180), lat: s01(city[1], -90, 90) }, 0, city[0] + ' ' + c.temperature_2m.toFixed(0) + '°C');
+  if (note == null) return;
+  pulse(city[2], city[1], colorOf(byId('weather')), 8);
+  setRO('weather', `${city[0]}: ${c.temperature_2m.toFixed(1)}°C\nWind ${c.wind_speed_10m.toFixed(0)} km/h, ${c.surface_pressure.toFixed(0)} hPa\nRain ${c.precipitation} mm, note ${nn(note)}`);
+}
+
+/* ---------- NASA: asteroids (NeoWs) and solar events (DONKI) ---------- */
+const nasaRaw = () => $('.nasakey').value.trim();
+const nasaKey = () => nasaRaw() || 'DEMO_KEY';
+const nasaWait = () => nasaRaw() ? 1800000 : 10800000;
+const ymd = d => d.toISOString().slice(0, 10);
+const NA = { list: [], loop: null, timer: null }, DN = { list: [], loop: null };
+const nasaErr = (id, e) => setStatus(id, e.message === 'HTTP 429' ? 'NASA rate limit reached. Paste a free key from api.nasa.gov into the NASA API key box on this card.' : 'Could not reach NASA: ' + e.message, true);
+async function cached(key, fn) {
+  try { const c = JSON.parse(localStorage.getItem('nasa-' + key)); if (c && Date.now() - c.t < nasaWait()) return c.v; } catch (e) {}
+  const v = await fn();
+  try { localStorage.setItem('nasa-' + key, JSON.stringify({ t: Date.now(), v })); } catch (e) {}
+  return v;
+}
+const neoBag = o => ({ close: 1 - s01(Math.log10(Math.max(.05, o.ld)), -1, 2), size: s01(Math.log10(Math.max(1, o.size)), .7, 3), speed: s01(o.kps, 0, 40), haz: o.haz });
+async function neoPoll() {
+  try {
+    NA.list = await cached('neo', async () => {
+      const d = await getJSON(`https://api.nasa.gov/neo/rest/v1/feed?start_date=${ymd(new Date())}&end_date=${ymd(new Date(Date.now() + 6 * 864e5))}&api_key=${nasaKey()}`);
+      const L = [];
+      for (const day of Object.values(d.near_earth_objects)) for (const o of day) {
+        const c = o.close_approach_data[0]; if (!c) continue;
+        const m = o.estimated_diameter.meters;
+        L.push({ name: o.name.replace(/[()]/g, '').trim(), t: c.epoch_date_close_approach, ld: +c.miss_distance.lunar, kps: +c.relative_velocity.kilometers_per_second,
+                 size: (m.estimated_diameter_min + m.estimated_diameter_max) / 2, haz: o.is_potentially_hazardous_asteroid ? 1 : 0 });
+      }
+      return L.sort((a, b) => a.t - b.t);
+    });
+    const L = NA.list; if (!L.length) { setRO('neo', 'No approaches listed this week.'); return; }
+    const next = L.find(o => o.t >= Date.now()) || L[L.length - 1], big = Math.max(...L.map(o => o.size));
+    setCC('neo', 80, neoBag(next).close * 127);
+    setCC('neo', 81, s01(L.length, 0, 60) * 127);
+    setCC('neo', 82, s01(L.filter(o => o.haz).length, 0, 10) * 127);
+    setCC('neo', 83, s01(Math.log10(Math.max(1, big)), .7, 3) * 127);
+    setRO('neo', `Next: ${next.name}, ${new Date(next.t).toLocaleString()}\n${next.ld.toFixed(1)} lunar distances, ${next.size.toFixed(0)} m, ${next.kps.toFixed(1)} km/s${next.haz ? ', flagged hazardous' : ''}\n${L.length} approaches in the next 7 days`);
+    setStatus('neo', 'Live. ' + (nasaKey() === 'DEMO_KEY' ? 'Using the shared demo key, so it refreshes every 3 hours.' : 'Refreshes every 30 minutes.'));
+    neoLoop();
+  } catch (e) { nasaErr('neo', e); }
+}
+function neoLoop() {
+  clearTimeout(NA.loop);
+  if (!$('#neo-replay').checked || !byId('neo').on || !NA.list.length) return;
+  const Lm = +$('#neo-loop').value * 1000, ws = new Date().setUTCHours(0, 0, 0, 0);
+  for (const o of NA.list) { const f = (o.t - ws) / (7 * 864e5); if (f >= 0 && f <= 1) fire('neo', neoBag(o), f * Lm, 'asteroid ' + trim(o.name, 22)); }
+  NA.loop = setTimeout(neoLoop, Lm);
+}
+async function donkiPoll() {
+  try {
+    DN.list = await cached('donki', async () => {
+      const a = ymd(new Date(Date.now() - 7 * 864e5)), b = ymd(new Date()), k = nasaKey();
+      const [fl, cm] = await Promise.all([
+        getJSON(`https://api.nasa.gov/DONKI/FLR?startDate=${a}&endDate=${b}&api_key=${k}`),
+        getJSON(`https://api.nasa.gov/DONKI/CME?startDate=${a}&endDate=${b}&api_key=${k}`)]);
+      const loc = t => { const m = /([NS])(\d+)([EW])(\d+)/.exec(t || ''); return m ? { lat: (m[1] === 'N' ? 1 : -1) * +m[2], lon: (m[3] === 'E' ? 1 : -1) * +m[4] } : { lat: 0, lon: 0 }; };
+      const out = [];
+      for (const f of fl || []) {
+        const m = /([ABCMX])([\d.]+)/.exec(f.classType || ''); if (!m) continue;
+        const exp = { A: -8, B: -7, C: -6, M: -5, X: -4 }[m[1]] + Math.log10(+m[2] || 1);
+        out.push({ kind: 0, t: Date.parse(f.peakTime || f.beginTime), str: s01(exp, -7, -3), width: .15, label: 'Flare ' + f.classType, ...loc(f.sourceLocation) });
+      }
+      for (const c of cm || []) {
+        const an = (c.cmeAnalyses || []).find(x => x.isMostAccurate) || (c.cmeAnalyses || [])[0];
+        const sp = an?.speed ?? 450, ha = an?.halfAngle ?? 30;
+        out.push({ kind: 1, t: Date.parse(c.startTime), str: s01(sp, 200, 2500), width: s01(ha, 10, 90), speed: sp, label: 'CME ' + Math.round(sp) + ' km/s', ...loc(c.sourceLocation) });
+      }
+      return out.filter(x => x.t).sort((a, b) => a.t - b.t);
+    });
+    const L = DN.list, fl = L.filter(x => !x.kind), cm = L.filter(x => x.kind);
+    const top = fl.reduce((a, b) => b.str > a.str ? b : a, fl[0] || { str: 0, label: 'none' });
+    const fast = cm.reduce((a, b) => b.speed > a.speed ? b : a, cm[0] || { speed: 0 });
+    setCC('donki', 90, s01(fl.length, 0, 40) * 127);
+    setCC('donki', 91, top.str * 127);
+    setCC('donki', 92, s01(cm.length, 0, 20) * 127);
+    setCC('donki', 93, s01(fast.speed, 200, 3000) * 127);
+    setRO('donki', `${fl.length} flares and ${cm.length} CMEs in the last 7 days\nStrongest: ${top.label}\nFastest: ${cm.length ? 'CME ' + Math.round(fast.speed) + ' km/s' : 'none'}`);
+    setStatus('donki', 'Live. ' + (nasaKey() === 'DEMO_KEY' ? 'Using the shared demo key, so it refreshes every 3 hours.' : 'Refreshes every 30 minutes.'));
+    donkiLoop();
+  } catch (e) { nasaErr('donki', e); }
+}
+function donkiLoop() {
+  clearTimeout(DN.loop);
+  if (!$('#dn-replay').checked || !byId('donki').on || !DN.list.length) return;
+  const Lm = +$('#dn-loop').value * 1000, ws = Date.now() - 7 * 864e5;
+  for (const x of DN.list) {
+    const f = (x.t - ws) / (7 * 864e5);
+    if (f >= 0 && f <= 1) fire('donki', { str: x.str, width: x.width, lon: s01(x.lon, -90, 90), lat: s01(x.lat, -90, 90), kind: x.kind }, f * Lm, x.label);
+  }
+  DN.loop = setTimeout(donkiLoop, Lm);
+}
+async function nasaPoll() {
+  clearTimeout(NA.timer);
+  await Promise.all([neoPoll(), donkiPoll()]);
+  NA.timer = setTimeout(nasaPoll, nasaWait());
+}
+const nasaEls = [...document.querySelectorAll('.nasakey')];
+try { const k = localStorage.getItem('earthmidi-nasakey') || ''; nasaEls.forEach(el => { el.value = k; }); } catch (e) {}
+nasaEls.forEach(el => el.addEventListener('change', () => {
+  const k = el.value.trim();
+  nasaEls.forEach(o => { o.value = k; });
+  try {
+    localStorage.setItem('earthmidi-nasakey', k);
+    Object.keys(localStorage).filter(x => x.startsWith('nasa-')).forEach(x => localStorage.removeItem(x));
+  } catch (e) {}
+  const msg = k ? 'Key saved. Refreshing…' : 'Key cleared. Using the shared demo key. Refreshing…';
+  setStatus('neo', msg); setStatus('donki', msg);
+  nasaPoll();
+}));
+$('#neo-replay').addEventListener('change', neoLoop);
+$('#neo-loop').addEventListener('input', e => { $('#neo-loop-o').textContent = e.target.value + ' s'; });
+$('#neo-loop').addEventListener('change', neoLoop);
+$('#dn-replay').addEventListener('change', donkiLoop);
+$('#dn-loop').addEventListener('input', e => { $('#dn-loop-o').textContent = e.target.value + ' s'; });
+$('#dn-loop').addEventListener('change', donkiLoop);
+
+/* ---------- EMSC quakes (WebSocket) ---------- */
+const EM = { ws: null, tries: 0, seen: new Set(), times: [] };
+function emscCC() {
+  const t = Date.now() - 36e5; EM.times = EM.times.filter(x => x > t);
+  setCC('emsc', 101, s01(EM.times.length, 0, 60) * 127);
+}
+function emsc() {
+  try { EM.ws = new WebSocket('wss://www.seismicportal.eu/standing_order/websocket'); }
+  catch (e) { setStatus('emsc', 'WebSocket is not available here.', true); return; }
+  EM.ws.onopen = () => { EM.tries = 0; setStatus('emsc', 'Connected. New quakes arrive as EMSC reports them.'); setRO('emsc', 'Waiting for the next quake…'); };
+  EM.ws.onmessage = ev => { try { const m = JSON.parse(ev.data); if (m.action === 'create') emscQuake(m.data); } catch (e) {} };
+  EM.ws.onclose = () => { setStatus('emsc', 'Disconnected. Reconnecting…', true); setTimeout(emsc, Math.min(30000, 2000 * ++EM.tries)); };
+  EM.ws.onerror = () => { try { EM.ws.close(); } catch (e) {} };
+}
+function emscQuake(f) {
+  const p = f.properties || {}, id = f.id || p.unid; if (EM.seen.has(id)) return; EM.seen.add(id);
+  const q = { mag: Math.max(0, +p.mag || 0), depth: +p.depth || 10, lon: +p.lon, lat: +p.lat, place: p.flynn_region || 'unknown region' };
+  if (!Number.isFinite(q.lon) || !Number.isFinite(q.lat)) return;
+  EM.times.push(Date.now()); emscCC();
+  setCC('emsc', 100, s01(q.mag, 0, 8) * 127);
+  setRO('emsc', `Latest: M${q.mag.toFixed(1)}, ${q.place}\n${q.depth.toFixed(0)} km deep, ${q.lat.toFixed(1)}°, ${q.lon.toFixed(1)}°\n${EM.times.length} received in the last hour`);
+  if (q.mag < +$('#emsc-min').value) return;
+  const note = fire('emsc', { mag: s01(q.mag, 0, 8), depth: s01(q.depth, 0, 300), lon: s01(q.lon, -180, 180), lat: s01(q.lat, -90, 90) }, 0, 'EMSC M' + q.mag.toFixed(1) + ' ' + trim(q.place));
+  if (note == null) return;
+  pulse(q.lon, q.lat, colorOf(byId('emsc')), 6 + q.mag * 4);
+  log('emsc', `M${q.mag.toFixed(1)} ${q.place}, ${q.depth.toFixed(0)} km deep, note ${nn(note)}`);
+}
+
+/* ---------- GOES X-ray flux ---------- */
+const XR = { series: [], loop: null, cls: null, running: false };
+const xcls = f => f >= 1e-4 ? 4 : f >= 1e-5 ? 3 : f >= 1e-6 ? 2 : f >= 1e-7 ? 1 : 0;
+const xname = f => { const c = xcls(f); return 'ABCMX'[c] + (f / [1e-8, 1e-7, 1e-6, 1e-5, 1e-4][c]).toFixed(1); };
+const xlog = f => s01(Math.log10(Math.max(f, 1e-9)), -8, -3);
+async function xrayPoll() {
+  try {
+    const d = await getSW('json/goes/primary/xrays-6-hour.json');
+    const lo = d.filter(r => r.energy === '0.1-0.8nm' && r.flux > 0), sh = d.filter(r => r.energy === '0.05-0.4nm' && r.flux > 0);
+    XR.series = lo.map(r => r.flux);
+    if (!lo.length) { setStatus('xray', 'No X-ray readings returned.', true); return; }
+    const f = lo[lo.length - 1].flux, g = sh.length ? sh[sh.length - 1].flux : null;
+    setCC('xray', 110, xlog(f) * 127); if (g) setCC('xray', 111, xlog(g) * 127); setCC('xray', 112, xcls(f) / 4 * 127);
+    if (XR.cls != null && xcls(f) > XR.cls) {
+      for (let k = 0; k <= xcls(f); k++) play('xray', scaleDeg(2 * k, 0), 70 + k * 10, 3000, k * 100, null, 'flare class up: ' + xname(f));
+      log('xray', `Flare class rose to ${xname(f)}`);
+    }
+    XR.cls = xcls(f);
+    setRO('xray', `Now ${xname(f)} (${f.toExponential(1)} W/m²)\nShort band ${g ? g.toExponential(1) + ' W/m²' : 'n/a'}\nPeak in 6 hours: ${xname(Math.max(...XR.series))}`);
+    setStatus('xray', 'Live. Checking every minute.');
+    if (!XR.running) xrayLoop();
+  } catch (e) { setStatus('xray', 'Could not reach NOAA: ' + e.message, true); }
+}
+function xrayLoop() {
+  clearTimeout(XR.loop);
+  if (!$('#xr-replay').checked || !byId('xray').on || !XR.series.length) { XR.running = false; return; }
+  XR.running = true;
+  const Lm = +$('#xr-loop').value * 1000, pts = XR.series.filter((_, i) => i % 5 === 0), n = pts.length;
+  pts.forEach((f, i) => fire('xray', { flux: xlog(f), cls: xcls(f) / 4 }, i / n * Lm, 'GOES ' + xname(f)));
+  XR.loop = setTimeout(xrayLoop, Lm);
+}
+const xrRestart = () => { XR.running = false; xrayLoop(); };
+$('#xr-replay').addEventListener('change', xrRestart);
+$('#xr-loop').addEventListener('input', e => { $('#xr-loop-o').textContent = e.target.value + ' s'; });
+$('#xr-loop').addEventListener('change', xrRestart);
+
+/* ---------- NOAA storm scales ---------- */
+const SC = { prev: null };
+async function scalesPoll() {
+  try {
+    const [d, pr] = await Promise.all([getSW('products/noaa-scales.json'), getSW('json/goes/primary/integral-protons-6-hour.json').catch(() => null)]);
+    const c = d['0'] || d[0];
+    const v = { R: +c.R.Scale || 0, S: +c.S.Scale || 0, G: +c.G.Scale || 0 }, top = Math.max(v.R, v.S, v.G);
+    const gt = d['1'] && d['1'].G ? d['1'].G.Scale : null, gTom = gt != null && gt !== '' && Number.isFinite(+gt) ? +gt : v.G;
+    const pf = pr ? pr.filter(r => r.energy === '>=10 MeV' && r.flux > 0) : [], p10 = pf.length ? pf[pf.length - 1].flux : null;
+    setCC('scales', 102, s01(v.R, 0, 5) * 127); setCC('scales', 103, s01(v.S, 0, 5) * 127); setCC('scales', 104, s01(v.G, 0, 5) * 127);
+    setCC('scales', 105, s01(top, 0, 5) * 127); setCC('scales', 106, s01(gTom, 0, 5) * 127);
+    if (p10) setCC('scales', 107, s01(Math.log10(p10), -1, 4) * 127);
+    fire('scales', { level: top / 5 }, 0, `NOAA scales R${v.R} S${v.S} G${v.G}`);
+    const names = { R: 'radio blackout', S: 'solar radiation storm', G: 'geomagnetic storm' };
+    if (SC.prev) for (const k of ['R', 'S', 'G']) if (v[k] > SC.prev[k]) {
+      for (let i = 0; i <= v[k]; i++) play('scales', scaleDeg(2 * i, 0), 70 + i * 8, 4000, i * 120, null, `NOAA ${k}${v[k]} ${names[k]}`);
+      log('scales', `${k}${v[k]} ${names[k]}`);
+    }
+    SC.prev = v;
+    setRO('scales', `R${v.R} radio blackout, S${v.S} solar radiation, G${v.G} geomagnetic\nTomorrow’s geomagnetic outlook: G${gTom}\nProtons (10 MeV and up): ${p10 ? p10.toFixed(2) + ' pfu' : 'n/a'}`);
+    setStatus('scales', 'Live. Checking every minute.');
+  } catch (e) { setStatus('scales', 'Could not reach NOAA: ' + e.message, true); }
+}
+
+/* ---------- enable hooks and boot ---------- */
+function onEnable(id) { if (id === 'quake') quakeLoop(); if (id === 'space') spaceLoop(false); if (id === 'neo') neoLoop(); if (id === 'donki') donkiLoop(); if (id === 'xray') xrRestart(); }
+
+initMidi();
+const tabBtns = [...document.querySelectorAll('.tabs button')];
+function setTab(t) {
+  $('.app').dataset.tab = t;
+  tabBtns.forEach(b => { const on = b.dataset.t === t; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
+  try { localStorage.setItem('earthmidi-tab', t); } catch (e) {}
+}
+tabBtns.forEach((b, i) => {
+  b.addEventListener('click', () => setTab(b.dataset.t));
+  b.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const n = tabBtns[(i + (e.key === 'ArrowRight' ? 1 : tabBtns.length - 1)) % tabBtns.length];
+    setTab(n.dataset.t); n.focus();
+  });
+});
+let savedTab = 'earth'; try { savedTab = localStorage.getItem('earthmidi-tab') || 'earth'; } catch (e) {}
+setTab(savedTab === 'space' ? 'space' : 'earth');
+const saveMF = () => { try { localStorage.setItem('earthmidi-monfilter', JSON.stringify({ mods: MF.mods, types: MF.types, ch: MF.ch, q: MF.q })); } catch (e) {} };
+$('#mon-mods').innerHTML = MODS.map(m => `<label class="chip" style="--c:var(${m.color})"><input type="checkbox" data-mm="${m.id}"><span>${m.name}</span></label>`).join('');
+$('#mon-ch').insertAdjacentHTML('beforeend', Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join(''));
+const syncMF = () => {
+  document.querySelectorAll('[data-mm]').forEach(el => { el.checked = !!MF.mods[el.dataset.mm]; });
+  document.querySelectorAll('[data-mt]').forEach(el => { el.checked = !!MF.types[el.dataset.mt]; });
+  $('#mon-ch').value = MF.ch; $('#mon-q').value = MF.q;
+};
+syncMF();
+document.querySelectorAll('[data-mm]').forEach(el => el.addEventListener('change', () => { MF.mods[el.dataset.mm] = el.checked ? 1 : 0; saveMF(); }));
+document.querySelectorAll('[data-mt]').forEach(el => el.addEventListener('change', () => { MF.types[el.dataset.mt] = el.checked ? 1 : 0; saveMF(); }));
+$('#mon-ch').addEventListener('change', e => { MF.ch = +e.target.value; saveMF(); });
+$('#mon-q').addEventListener('input', e => { MF.q = e.target.value; saveMF(); });
+$('#mon-all').addEventListener('click', () => { MODS.forEach(m => { MF.mods[m.id] = 1; }); Object.keys(MF.types).forEach(k => { MF.types[k] = 1; }); MF.ch = 0; MF.q = ''; syncMF(); saveMF(); });
+$('#mon-none').addEventListener('click', () => { MODS.forEach(m => { MF.mods[m.id] = 0; }); syncMF(); saveMF(); });
+$('#mon-pause').addEventListener('click', e => { MF.paused = !MF.paused; e.target.textContent = MF.paused ? 'Resume' : 'Pause'; });
+$('#mon-clear').addEventListener('click', () => { MON.length = 0; $('#mon').textContent = ''; });
+const help = $('#help');
+$('#btn-help').addEventListener('click', () => help.showModal());
+$('#help-x').addEventListener('click', () => help.close());
+help.addEventListener('click', e => { if (e.target === help) help.close(); });
+mapUI(); setInterval(pump, 40); setInterval(() => {
+  const filt = MODS.some(m => !MF.mods[m.id]) || Object.values(MF.types).some(v => !v) || MF.ch || MF.q.trim();
+  $('#mon-state').textContent = MF.paused ? '· paused' : filt ? '· filtered' : '· live';
+  if (!MF.paused) $('#mon').textContent = monLines(16).join('\n');
+}, 200);
+every(quakePoll, 30000);
+every(quakeDay, 300000);
+every(issPoll, 5000);
+setInterval(issTick, 100);
+every(spacePoll, 60000);
+every(eventsPoll, 600000);
+every(weatherPoll, 600000);
+nasaPoll();
+emsc(); every(emscCC, 60000); every(xrayPoll, 60000); every(scalesPoll, 60000);
+every(() => { const sp = sunPoint(); setCC('space', 36, s01(sp.lon, -180, 180) * 127); setCC('space', 37, s01(sp.lat, -23.5, 23.5) * 127); const mp = moonPoint(); setCC('space', 38, (1 - Math.cos(2 * Math.PI * moonPhase())) / 2 * 127); setCC('space', 39, s01(mp.lon, -180, 180) * 127); }, 5000);
+setInterval(() => {
+  if (!fsEl.classList.contains('fs')) return;
+  $('#hud-top').innerHTML = `Earth to MIDI<small>${$('#midi-state').textContent} · ${new Date().toUTCString().slice(17, 25)} UTC</small>`;
+  $('#hud-mon').textContent = monLines(8).join('\n');
+  $('#hud-log').innerHTML = [...logEl.children].slice(0, 7).map(c => c.outerHTML).join('');
+}, 250);
+setInterval(weatherChime, 6000);
+every(() => setCC('space', 35, moonPhase() * 127), 60000);
+})();
+</script>
+</body>
+</html>
