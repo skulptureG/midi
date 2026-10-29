@@ -145,6 +145,8 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
 #monpanel.wide pre#mon{flex:1;min-height:0;height:auto;white-space:pre;overflow:hidden;font-size:12.5px;line-height:1.45}
 #mon-tall{display:none}
 #monpanel.wide #mon-tall{display:inline-block}
+.soundbox{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:8px}
+.soundbox label{display:flex;align-items:center;gap:8px;justify-content:space-between}
 </style>
 </head>
 <body>
@@ -152,6 +154,7 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
   <header>
     <h1>Earth <span>to</span> MIDI</h1>
     <p class="abs"><span>Earth and space data for live events.</span><span>Real-time quakes, weather, the ISS, solar activity and asteroids, turned into MIDI notes and controllers for your DAW, lights or show control.</span></p>
+    <button id="btn-snd" aria-pressed="false">🔈 Sound off</button>
     <button id="btn-pp" class="pp" aria-pressed="false">❚❚ Pause all</button>
     <button id="btn-help" aria-haspopup="dialog">Help</button>
   </header>
@@ -220,6 +223,11 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
         <button id="btn-test">Send test chord</button>
         <button class="danger" id="btn-panic">Panic</button>
       </div>
+      <div class="soundbox">
+        <label><span><input type="checkbox" id="snd-on"> Built-in chime</span></label>
+        <label><span class="src">Volume</span><input type="range" id="snd-vol" min="0" max="100" value="40"><output id="snd-vol-o">40%</output></label>
+        <div class="src">Hear every note without any MIDI. Notes only; controllers are silent.</div>
+      </div>
     </section>
 
     <section class="panel">
@@ -283,7 +291,7 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
       <li>In your DAW, Chataigne or lighting software, enable that port as an input and listen on channels 1 to 15.</li>
       <li>Press <b>Send test chord</b> to check the link. <b>Panic</b> clears any stuck notes.</li>
     </ol>
-    <p>With no port selected the page runs in preview mode: the map, log and monitor still work.</p>
+    <p>With no port selected the page runs in preview mode: the map, log and monitor still work, and the built-in chime lets you hear the notes.</p>
 
     <h3>Earth and Space tabs</h3>
     <p>The filled, highlighted tab (green for Earth, violet for Space) is the one you are looking at. The tabs only change what you see: every module keeps running and sending MIDI whichever tab is open. Use the On switch on a card to mute a module.</p>
@@ -291,6 +299,9 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
       <li><b>Earth:</b> earthquakes (USGS and EMSC), natural events, weather chimes, lightning, the planet clock, modelled births and deaths.</li>
       <li><b>Space:</b> space station, Earth’s motion and forces, space weather, solar X-rays, NOAA storm scales, asteroids, solar flares and CMEs.</li>
     </ul>
+
+    <h3>Built-in chime</h3>
+    <p>To hear and see it working without any MIDI, switch on <b>Built-in chime</b> (in the MIDI output panel, or the Sound button at the top, or press <kbd>M</kbd>) and set the volume. Every note that plays also sounds as a soft bell in your browser, panned by longitude where a module uses pan. Notes are shifted by whole octaves into a comfortable listening range, so the pitch names match but very low notes will sound higher. Controllers are silent. Browsers only allow audio after you click, so it always starts off, and Pause all silences it too.</p>
 
     <h3>Pause and resume</h3>
     <p><b>Pause all</b> (top right, or the <kbd>Space</kbd> bar) silences everything at once. It sends all-notes-off, stops the loops and sequencers, and holds the controllers where they are. Data keeps updating in the background, and quakes that arrive while paused are skipped. <b>Resume</b> sends the current controller values again and restarts the loops from the beginning. A “Paused” label shows on the map, including in full screen.</p>
@@ -360,7 +371,7 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
     <p>Births and deaths are separate modules on channels 11 and 12, each with its own Note output settings. <b>Play one note per</b> thins the notes so it isn’t too busy, though every event still counts, pulses on the map and fires its pulse controller (CC113 and CC116). The cards show estimated totals since midnight UTC.</p>
 
     <h3>Keys</h3>
-    <p><kbd>Space</kbd> pause or resume everything, <kbd>F</kbd> full screen, <kbd>?</kbd> this help, <kbd>Esc</kbd> closes popups and full screen.</p>
+    <p><kbd>Space</kbd> pause or resume everything, <kbd>M</kbd> built-in chime on or off, <kbd>F</kbd> full screen, <kbd>?</kbd> this help, <kbd>Esc</kbd> closes popups and full screen.</p>
 
     <h3>Data sources</h3>
     <p>USGS and EMSC earthquakes, wheretheiss.at, NOAA space weather (solar wind, GOES X-ray and proton flux, storm scales), NASA EONET, Open-Meteo, NASA NeoWs and DONKI, the World Bank (population, birth and death rates), Blitzortung.org (lightning) and Natural Earth coastlines. The planet clock and Earth motion modules are calculated on your computer from astronomical formulas and need no internet. An internet connection is needed. The only things stored are your settings and your NASA key, in this browser.</p>
@@ -369,6 +380,7 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
     <h3>If something is not working</h3>
     <ul>
       <li><b>No sound:</b> check loopMIDI is running with a port created, the port is selected here, enabled as an input in your software, and that a track is listening on that channel.</li>
+      <li><b>Built-in chime is silent:</b> switch Sound on first (browsers need a click before playing audio), raise the volume, and check your device volume and that the module’s notes are on.</li>
       <li><b>“Web MIDI not supported”:</b> use Chrome or Edge on a desktop. If MIDI is blocked when opening the file directly, serve it from localhost.</li>
       <li><b>A card shows an error:</b> that feed is unreachable or rate-limited. The others keep working. For NASA rate limits, add your own key. “HTTP 503” means NASA’s servers are briefly down: the page keeps showing the last good data and retries every 5 minutes.</li>
       <li><b>No coastlines:</b> they load from the internet. Check your connection, or ignore them, since the map works without.</li>
@@ -650,6 +662,53 @@ function monLines(n) {
   }
   return out;
 }
+/* ---------- built-in chime (Web Audio) ---------- */
+const SND = { ctx: null, master: null, on: false, voices: 0, vol: 40 };
+try { const sv = localStorage.getItem('earthmidi-vol'); if (sv !== null && sv !== '') SND.vol = clamp(+sv || 0, 0, 100); } catch (e) {}
+function sndInit() {
+  if (SND.ctx) return;
+  const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+  SND.ctx = new C();
+  const comp = SND.ctx.createDynamicsCompressor(); SND.master = SND.ctx.createGain();
+  SND.master.gain.value = (SND.vol / 100) ** 2;
+  SND.master.connect(comp); comp.connect(SND.ctx.destination);
+}
+function setSound(on) {
+  SND.on = on;
+  if (on) { sndInit(); if (SND.ctx) SND.ctx.resume(); }
+  $('#snd-on').checked = on;
+  const b = $('#btn-snd'); b.textContent = on ? '🔊 Sound on' : '🔈 Sound off'; b.setAttribute('aria-pressed', on);
+}
+function setVol(v) {
+  SND.vol = v; $('#snd-vol').value = v; $('#snd-vol-o').textContent = v + '%';
+  if (SND.master && !S.paused) SND.master.gain.setTargetAtTime((v / 100) ** 2, SND.ctx.currentTime, .02);
+  try { localStorage.setItem('earthmidi-vol', String(v)); } catch (e) {}
+}
+function sndDuck(p) { if (SND.master) SND.master.gain.setTargetAtTime(p ? 0 : (SND.vol / 100) ** 2, SND.ctx.currentTime, .04); }
+function chime(note, vel, dur, delay, pan) {
+  if (!SND.on || !SND.ctx || SND.voices > 24) return;
+  const c = SND.ctx, t = c.currentTime + Math.max(0, delay) / 1000;
+  let f = 440 * Math.pow(2, (note - 69) / 12); while (f < 200) f *= 2; while (f > 2000) f /= 2;
+  const len = Math.min(4, .5 + dur / 1000 * .9), out = c.createGain();
+  out.gain.setValueAtTime(0, t); out.gain.linearRampToValueAtTime(Math.pow(vel / 127, 1.4) * .5, t + .006); out.gain.exponentialRampToValueAtTime(.0001, t + len);
+  let tail = out;
+  if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = pan == null ? 0 : clamp(pan / 127 * 2 - 1, -1, 1); out.connect(p); tail = p; }
+  tail.connect(SND.master);
+  const parts = [[1, 1], [2, .45], [2.76, .3], [4.2, .15], [5.4, .08]]; let ended = 0;
+  SND.voices++;
+  parts.forEach(([r, g], i) => {
+    const o = c.createOscillator(), gg = c.createGain();
+    o.type = 'sine'; o.frequency.value = Math.min(f * r, 12000);
+    gg.gain.setValueAtTime(g, t); gg.gain.exponentialRampToValueAtTime(.0001, t + len / (1 + i * .8));
+    o.connect(gg); gg.connect(out); o.start(t); o.stop(t + len + .05);
+    o.onended = () => { if (++ended === parts.length) { SND.voices--; try { out.disconnect(); } catch (e) {} } };
+  });
+}
+$('#snd-on').addEventListener('change', e => setSound(e.target.checked));
+$('#btn-snd').addEventListener('click', () => setSound(!SND.on));
+$('#snd-vol').addEventListener('input', e => setVol(+e.target.value));
+setVol(SND.vol);
+
 function play(id, note, vel, dur, delay = 0, pan = null, label = '') {
   const m = byId(id); if (!m.on || !m.notes || S.paused) return;
   if (delay > 600) { const g = S.gen; setTimeout(() => { if (g === S.gen) play(id, note, vel, dur, 400, pan, label); }, delay - 400); return; }
@@ -657,6 +716,7 @@ function play(id, note, vel, dur, delay = 0, pan = null, label = '') {
   const t = performance.now() + delay, ch = m.ch - 1, sh = delay < 50;
   if (pan != null) tx([0xB0 | ch, 10, clamp(Math.round(pan), 0, 127)], t, 0);
   tx([0x90 | ch, note, vel], t, 1, label, id);
+  chime(note, vel, dur, delay, pan);
   tx([0x80 | ch, note, 0], t + dur, 0);
   m.count++; flash(id, delay);
 }
@@ -784,6 +844,7 @@ function setPaused(p) {
   const b = $('#btn-pp'); b.textContent = p ? '▶ Resume' : '❚❚ Pause all'; b.setAttribute('aria-pressed', p);
   if (p) { panic(); setTimeout(() => { if (S.paused) panic(); }, 450); }
   else { resendAll(); MODS.forEach(m => onEnable(m.id)); }
+  sndDuck(p);
 }
 const togglePause = () => setPaused(!S.paused);
 $('#btn-pp').addEventListener('click', togglePause);
@@ -825,6 +886,7 @@ $('#btn-fs').addEventListener('click', toggleFS);
 addEventListener('keydown', e => {
   if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || $('#help').open) return;
   if (e.key === 'f' || e.key === 'F') toggleFS();
+  if (e.key === 'm' || e.key === 'M') setSound(!SND.on);
   if (e.key === ' ' && document.activeElement.tagName !== 'BUTTON') { e.preventDefault(); togglePause(); }
   if (e.key === '?') $('#help').showModal();
   if (e.key === 'Escape') closePop();
