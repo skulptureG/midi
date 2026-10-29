@@ -358,7 +358,7 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
     <ul>
       <li><b>No sound:</b> check loopMIDI is running with a port created, the port is selected here, enabled as an input in your software, and that a track is listening on that channel.</li>
       <li><b>“Web MIDI not supported”:</b> use Chrome or Edge on a desktop. If MIDI is blocked when opening the file directly, serve it from localhost.</li>
-      <li><b>A card shows an error:</b> that feed is unreachable or rate-limited. The others keep working. For NASA rate limits, add your own key.</li>
+      <li><b>A card shows an error:</b> that feed is unreachable or rate-limited. The others keep working. For NASA rate limits, add your own key. “HTTP 503” means NASA’s servers are briefly down: the page keeps showing the last good data and retries every 5 minutes.</li>
       <li><b>No coastlines:</b> they load from the internet. Check your connection, or ignore them, since the map works without.</li>
       <li><b>Too busy:</b> raise the minimum magnitude, lengthen the loops, or narrow a module’s “Only play when” filter.</li>
     </ul>
@@ -1313,18 +1313,39 @@ const nasaKey = () => nasaRaw() || 'DEMO_KEY';
 const nasaWait = () => nasaRaw() ? 1800000 : 10800000;
 const ymd = d => d.toISOString().slice(0, 10);
 const NA = { list: [], loop: null, timer: null }, DN = { list: [], loop: null };
-const nasaErr = (id, e) => setStatus(id, e.message === 'HTTP 429' ? 'NASA rate limit reached. Paste a free key from api.nasa.gov into the NASA API key box on this card.' : 'Could not reach NASA: ' + e.message, true);
+const nasaErr = (id, e) => {
+  NA.failed = true; NA.retry = Math.max(NA.retry || 0, e.message === 'HTTP 429' ? 1800000 : 300000);
+  setStatus(id, e.message === 'HTTP 429' ? 'NASA rate limit reached. Paste a free key from api.nasa.gov into the NASA API key box on this card. Retrying in 30 minutes.'
+    : /^HTTP 5/.test(e.message) ? 'NASA’s server is temporarily unavailable (' + e.message + '). Retrying in 5 minutes.'
+    : 'Could not reach NASA: ' + e.message + '. Retrying in 5 minutes.', true);
+};
+const NASA_STALE = {};
+async function tryUrls(urls) {
+  let err;
+  for (const u of urls) for (let i = 0; i < 2; i++) {
+    try { return await getJSON(u); }
+    catch (e) { err = e; if (!/HTTP 5|Failed to fetch/.test(e.message)) break; await new Promise(r => setTimeout(r, 1200)); }
+  }
+  throw err;
+}
 async function cached(key, fn) {
-  try { const c = JSON.parse(localStorage.getItem('nasa-' + key)); if (c && Date.now() - c.t < nasaWait()) return c.v; } catch (e) {}
-  const v = await fn();
-  try { localStorage.setItem('nasa-' + key, JSON.stringify({ t: Date.now(), v })); } catch (e) {}
-  return v;
+  let c = null;
+  try { c = JSON.parse(localStorage.getItem('nasa-' + key)); } catch (e) {}
+  if (c && Date.now() - c.t < nasaWait()) { NASA_STALE[key] = false; return c.v; }
+  try {
+    const v = await fn(); NASA_STALE[key] = false;
+    if (!v._nostore) { try { localStorage.setItem('nasa-' + key, JSON.stringify({ t: Date.now(), v })); } catch (e) {} }
+    return v;
+  } catch (e) {
+    if (c) { NASA_STALE[key] = true; return c.v; }
+    throw e;
+  }
 }
 const neoBag = o => ({ close: 1 - s01(Math.log10(Math.max(.05, o.ld)), -1, 2), size: s01(Math.log10(Math.max(1, o.size)), .7, 3), speed: s01(o.kps, 0, 40), haz: o.haz });
 async function neoPoll() {
   try {
     NA.list = await cached('neo', async () => {
-      const d = await getJSON(`https://api.nasa.gov/neo/rest/v1/feed?start_date=${ymd(new Date())}&end_date=${ymd(new Date(Date.now() + 6 * 864e5))}&api_key=${nasaKey()}`);
+      const d = await tryUrls([`https://api.nasa.gov/neo/rest/v1/feed?start_date=${ymd(new Date())}&end_date=${ymd(new Date(Date.now() + 6 * 864e5))}&api_key=${nasaKey()}`]);
       const L = [];
       for (const day of Object.values(d.near_earth_objects)) for (const o of day) {
         const c = o.close_approach_data[0]; if (!c) continue;
@@ -1341,7 +1362,7 @@ async function neoPoll() {
     setCC('neo', 82, s01(L.filter(o => o.haz).length, 0, 10) * 127);
     setCC('neo', 83, s01(Math.log10(Math.max(1, big)), .7, 3) * 127);
     setRO('neo', `Next: ${next.name}, ${new Date(next.t).toLocaleString()}\n${next.ld.toFixed(1)} lunar distances, ${next.size.toFixed(0)} m, ${next.kps.toFixed(1)} km/s${next.haz ? ', flagged hazardous' : ''}\n${L.length} approaches in the next 7 days`);
-    setStatus('neo', 'Live. ' + (nasaKey() === 'DEMO_KEY' ? 'Using the shared demo key, so it refreshes every 3 hours.' : 'Refreshes every 30 minutes.'));
+    { const st = NASA_STALE.neo; if (st) NA.failed = true; setStatus('neo', st ? 'NASA is not responding, so this is the last good data. Retrying in 5 minutes.' : 'Live. ' + (nasaKey() === 'DEMO_KEY' ? 'Using the shared demo key, so it refreshes every 3 hours.' : 'Refreshes every 30 minutes.'), !!st); }
     neoLoop();
   } catch (e) { nasaErr('neo', e); }
 }
@@ -1356,9 +1377,11 @@ async function donkiPoll() {
   try {
     DN.list = await cached('donki', async () => {
       const a = ymd(new Date(Date.now() - 7 * 864e5)), b = ymd(new Date()), k = nasaKey();
-      const [fl, cm] = await Promise.all([
-        getJSON(`https://api.nasa.gov/DONKI/FLR?startDate=${a}&endDate=${b}&api_key=${k}`),
-        getJSON(`https://api.nasa.gov/DONKI/CME?startDate=${a}&endDate=${b}&api_key=${k}`)]);
+      const get = kind => tryUrls([`https://api.nasa.gov/DONKI/${kind}?startDate=${a}&endDate=${b}&api_key=${k}`,
+        `https://kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get/${kind}?startDate=${a}&endDate=${b}`]).catch(() => undefined);
+      const [fl, cm] = await Promise.all([get('FLR'), get('CME')]);
+      if (fl === undefined && cm === undefined) throw new Error('HTTP 503');
+      const partial = fl === undefined || cm === undefined;
       const loc = t => { const m = /([NS])(\d+)([EW])(\d+)/.exec(t || ''); return m ? { lat: (m[1] === 'N' ? 1 : -1) * +m[2], lon: (m[3] === 'E' ? 1 : -1) * +m[4] } : { lat: 0, lon: 0 }; };
       const out = [];
       for (const f of fl || []) {
@@ -1371,7 +1394,9 @@ async function donkiPoll() {
         const sp = an?.speed ?? 450, ha = an?.halfAngle ?? 30;
         out.push({ kind: 1, t: Date.parse(c.startTime), str: s01(sp, 200, 2500), width: s01(ha, 10, 90), speed: sp, label: 'CME ' + Math.round(sp) + ' km/s', ...loc(c.sourceLocation) });
       }
-      return out.filter(x => x.t).sort((a, b) => a.t - b.t);
+      const res = out.filter(x => x.t).sort((a, b) => a.t - b.t);
+      if (partial) res._nostore = true;
+      return res;
     });
     const L = DN.list, fl = L.filter(x => !x.kind), cm = L.filter(x => x.kind);
     const top = fl.reduce((a, b) => b.str > a.str ? b : a, fl[0] || { str: 0, label: 'none' });
@@ -1381,7 +1406,7 @@ async function donkiPoll() {
     setCC('donki', 92, s01(cm.length, 0, 20) * 127);
     setCC('donki', 93, s01(fast.speed, 200, 3000) * 127);
     setRO('donki', `${fl.length} flares and ${cm.length} CMEs in the last 7 days\nStrongest: ${top.label}\nFastest: ${cm.length ? 'CME ' + Math.round(fast.speed) + ' km/s' : 'none'}`);
-    setStatus('donki', 'Live. ' + (nasaKey() === 'DEMO_KEY' ? 'Using the shared demo key, so it refreshes every 3 hours.' : 'Refreshes every 30 minutes.'));
+    { const st = NASA_STALE.donki, part = !!DN.list._nostore; if (st || part) NA.failed = true; setStatus('donki', st ? 'NASA is not responding, so this is the last good data. Retrying in 5 minutes.' : part ? 'Partly live: one of the two NASA feeds was unavailable. Retrying in 5 minutes.' : 'Live. ' + (nasaKey() === 'DEMO_KEY' ? 'Using the shared demo key, so it refreshes every 3 hours.' : 'Refreshes every 30 minutes.'), st || part); }
     donkiLoop();
   } catch (e) { nasaErr('donki', e); }
 }
@@ -1397,8 +1422,9 @@ function donkiLoop() {
 }
 async function nasaPoll() {
   clearTimeout(NA.timer);
+  NA.failed = false; NA.retry = 0;
   await Promise.all([neoPoll(), donkiPoll()]);
-  NA.timer = setTimeout(nasaPoll, nasaWait());
+  NA.timer = setTimeout(nasaPoll, NA.failed ? NA.retry || 300000 : nasaWait());
 }
 const nasaEls = [...document.querySelectorAll('.nasakey')];
 try { const k = localStorage.getItem('earthmidi-nasakey') || ''; nasaEls.forEach(el => { el.value = k; }); } catch (e) {}
