@@ -156,18 +156,24 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
       <canvas id="map" aria-label="World map showing live data points"></canvas>
       <div class="mapctl">
         <details class="layers"><summary>Layers</summary><div class="npg">
+          <span class="src">Map</span>
           <label><input type="checkbox" data-l="land"> Coastlines</label>
           <label><input type="checkbox" data-l="grid"> Grid</label>
           <label><input type="checkbox" data-l="term"> Day and night</label>
-          <label><input type="checkbox" data-l="sun"> Sun position</label>
+          <span class="src">Sky</span>
+          <label><input type="checkbox" data-l="sun"> Sun</label>
+          <label><input type="checkbox" data-l="moon"> Moon</label>
+          <label><input type="checkbox" data-l="iss"> Space station</label>
+          <label><input type="checkbox" data-l="track"> ISS ground track</label>
+          <span class="src">Earth data</span>
           <label><input type="checkbox" data-l="quakes"> Quake history</label>
           <label><input type="checkbox" data-l="events"> Natural events</label>
           <label><input type="checkbox" data-l="cities"> Weather cities</label>
           <label><input type="checkbox" data-l="lightning"> Lightning</label>
-          <label><input type="checkbox" data-l="iss"> Space station</label>
-          <label><input type="checkbox" data-l="track"> ISS ground track</label>
-          <label><input type="checkbox" data-l="moon"> Moon</label>
-          <label><input type="checkbox" data-l="pulses"> Note pulses</label>
+          <span class="src">Live activity</span>
+          <label><input type="checkbox" data-l="pulses"> Note pulses and markers</label>
+          <label><input type="checkbox" data-l="people"> Births and deaths</label>
+          <label><input type="checkbox" data-l="clock"> Sunrise and sunset</label>
         </div></details>
         <button id="btn-fs">Full screen</button>
       </div>
@@ -175,9 +181,15 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
       <div class="pop" id="pop" hidden></div>
       <div class="maplegend">
         <span><i style="background:var(--quake)"></i>Earthquakes</span>
+        <span><i style="background:var(--lightning)"></i>Lightning</span>
         <span><i style="background:var(--iss)"></i>ISS</span>
         <span><i style="background:var(--events)"></i>Natural events</span>
         <span><i style="background:var(--weather)"></i>Weather cities</span>
+        <span><i style="background:var(--births)"></i>Births</span>
+        <span><i style="background:var(--deaths)"></i>Deaths</span>
+        <span><i style="background:var(--clock)"></i>Sunrise and sunset</span>
+        <span><i style="background:#ffd166"></i>Sun</span>
+        <span><i style="background:#dfe8ff"></i>Moon</span>
       </div>
     </div>
     <div class="cards" id="cards"></div>
@@ -313,10 +325,11 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
 
     <h3>The map</h3>
     <ul>
-      <li><b>Click</b> any dot, the ISS, the sun or the moon for details. Quakes, events and cities have a button to play just that item.</li>
+      <li><b>Click</b> any dot, a note pulse, a lightning strike, the ISS, the sun or the moon for details. Pulses show what triggered them and have a button to play that note again. Quakes, events and cities have a button to play just that item.</li>
       <li><b>ISS ground track:</b> the dashed line shows where the station will be over roughly the next 2 hours, with markers every 30 minutes. It is a simple prediction, so it drifts over time.</li>
       <li><b>Sun and moon:</b> each marker sits at the point on Earth directly beneath it, and the moon shows its current phase. The shaded area is night.</li>
-      <li><b>Layers</b> shows or hides coastlines (which need an internet connection), grid, day and night, sun, moon, quake history, events, cities, lightning, the ISS and its track, and note pulses.</li>
+      <li><b>Layers</b> shows or hides each part of the map, in four groups. Map: coastlines (which need an internet connection), grid, day and night. Sky: sun, moon, ISS and its ground track. Earth data: quake history, natural events, weather cities, lightning. Live activity: note pulses and markers, births and deaths, sunrise and sunset.</li>
+      <li><b>Pulses and markers:</b> every note that plays on the map draws a ring and leaves a dot that fades over 8 seconds, so you can click it. Switch births and deaths or sunrise and sunset off separately if the map gets busy.</li>
       <li><b>Full screen</b> (button or <kbd>F</kbd>) gives a clean display with a live monitor and log. The cursor and buttons hide after a few seconds without movement.</li>
     </ul>
 
@@ -635,13 +648,16 @@ function play(id, note, vel, dur, delay = 0, pan = null, label = '') {
   tx([0x80 | ch, note, 0], t + dur, 0);
   m.count++; flash(id, delay);
 }
+let LF = null;
 function fire(id, b, delay = 0, label = '') {
   const m = byId(id); if (!m.on || !m.notes || S.paused) return null;
   const n = m.np, f = m.flt;
   if (f.p && b[f.p] != null) { const v = b[f.p] * 100; if (v < f.lo || v > f.hi) return null; }
   const g = k => n[k] ? b[n[k]] : .5;
   const note = noteFrom(n.pinv ? 1 - g('pitch') : g('pitch'), n.span, n.off);
-  play(id, note, n.vmin + g('vel') * (n.vmax - n.vmin), n.dmin + g('dur') * (n.dmax - n.dmin), delay, n.pan ? b[n.pan] * 127 : null, label);
+  const vel = n.vmin + g('vel') * (n.vmax - n.vmin), len = n.dmin + g('dur') * (n.dmax - n.dmin);
+  LF = { id, label, note, vel: clamp(Math.round(vel), 1, 127), dur: len, t: performance.now() };
+  play(id, note, vel, len, delay, n.pan ? b[n.pan] * 127 : null, label);
   return note;
 }
 function setCC(id, num, val) { (ST[id + ':' + num] ||= { tgt: 0, cur: null, sent: null }).tgt = clamp(val, 0, 127); }
@@ -804,7 +820,7 @@ addEventListener('keydown', e => {
 });
 let idleT; fsEl.addEventListener('mousemove', () => { fsEl.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => fsEl.classList.add('idle'), 3000); });
 
-const LY = { land: 1, grid: 1, term: 1, quakes: 1, events: 1, cities: 1, iss: 1, track: 1, moon: 1, lightning: 1, sun: 1, pulses: 1 };
+const LY = { land: 1, grid: 1, term: 1, quakes: 1, events: 1, cities: 1, iss: 1, track: 1, moon: 1, lightning: 1, people: 1, clock: 1, sun: 1, pulses: 1 };
 try { Object.assign(LY, JSON.parse(localStorage.getItem('earthmidi-layers'))); } catch (e) {}
 document.querySelectorAll('[data-l]').forEach(el => {
   el.checked = !!LY[el.dataset.l];
@@ -869,6 +885,8 @@ function pick(mx, my) {
   if (LY.cities) CITIES.forEach((c, i) => t(c[2], c[1], { kind: 'city', i }));
   if (LY.track && I.track) for (const p of I.track) if (p.m && p.m % 30 === 0) t(p.lon, p.lat, { kind: 'track', p }, .5);
   if (LY.iss && MAP.iss) t(MAP.iss.lon, MAP.iss.lat, { kind: 'iss' }, .35);
+  if (LY.lightning) for (const q of MAP.strikes) t(q.lon, q.lat, { kind: 'strike', q });
+  if (LY.pulses) for (const p of MAP.pulses) if (p.info && performance.now() >= p.t0 && pulseOn(p)) t(p.lon, p.lat, { kind: 'pulse', p }, .6);
   if (LY.sun) { const q = sunPoint(); t(q.lon, q.lat, { kind: 'sun' }, .35); }
   if (LY.moon) { const q = moonPoint(); t(q.lon, q.lat, { kind: 'moon' }, .35); }
   return best;
@@ -900,6 +918,13 @@ cv.addEventListener('click', ev => {
     showPop(ev, `ISS in ${b.p.m} minutes`, [`Predicted over ${pos}`, 'Estimated from a simple orbit model, so it drifts over time.']);
   } else if (b.kind === 'sun') {
     showPop(ev, 'Sun', [`Directly overhead at ${pos}`, `Solar declination ${b.lat.toFixed(1)}°`]);
+  } else if (b.kind === 'strike') {
+    showPop(ev, 'Lightning strike', [pos, `${Math.round((Date.now() - b.q.t) / 1000)} s ago`, 'Data from Blitzortung.org']);
+  } else if (b.kind === 'pulse') {
+    const i = b.p.info, m = byId(i.id);
+    showPop(ev, i.label || m.name, [`${m.name}, channel ${m.ch}`, `Note ${nn(i.note)}, velocity ${i.vel}, ${Math.round(i.dur)} ms`, pos, `${Math.round((performance.now() - b.p.t0) / 1000)} s ago`,
+      i.id === 'births' || i.id === 'deaths' ? 'Placed by a model near a population centre, not a real location.' : ''].filter(Boolean),
+      () => play(i.id, i.note, i.vel, i.dur, 0, null, i.label), 'Play this note');
   } else {
     const ph = moonPhase();
     showPop(ev, moonName(ph), [`${Math.round((1 - Math.cos(2 * Math.PI * ph)) / 2 * 100)}% illuminated`, `Directly overhead at ${pos}`, `${(ph * 29.53).toFixed(1)} days into the cycle`]);
@@ -922,8 +947,10 @@ function sunPoint() {
 window.addEventListener('resize', sizeCanvas); sizeCanvas();
 const px = (lon, W) => (lon + 180) / 360 * W;
 const py = (lat, H) => (90 - lat) / 180 * H;
+const pulseOn = p => { const id = p.info && p.info.id; return !((id === 'births' || id === 'deaths') && !LY.people) && !(id === 'clock' && !LY.clock); };
 function pulse(lon, lat, color, size, delay = 0) {
-  MAP.pulses.push({ lon, lat, color, size, t0: performance.now() + delay });
+  const f = LF && performance.now() - LF.t < 30 ? LF : null;
+  MAP.pulses.push({ lon, lat, color, size, t0: performance.now() + delay, info: f && { ...f } });
   if (MAP.pulses.length > 400) MAP.pulses.shift();
 }
 function dotAt(lon, lat, r, color, alpha = 1) {
@@ -1013,11 +1040,16 @@ function draw() {
     const p = SEL.fn();
     if (p) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 * K; ctx.globalAlpha = .6 + .4 * Math.sin(now / 160); ctx.beginPath(); ctx.arc(px(p.lon, W), py(p.lat, H), 11 * K, 0, 7); ctx.stroke(); ctx.globalAlpha = 1; }
   }
-  MAP.pulses = MAP.pulses.filter(p => now - p.t0 < 1800);
+  MAP.pulses = MAP.pulses.filter(p => now - p.t0 < 8000);
   if (LY.pulses) for (const p of MAP.pulses) {
-    const age = (now - p.t0) / 1800; if (age < 0) continue;
-    ctx.strokeStyle = p.color; ctx.globalAlpha = 1 - age; ctx.lineWidth = 2 * K;
-    ctx.beginPath(); ctx.arc(px(p.lon, W), py(p.lat, H), p.size * K * (0.4 + age * 2.6), 0, 7); ctx.stroke();
+    const t = now - p.t0; if (t < 0 || !pulseOn(p)) continue;
+    const x = px(p.lon, W), y = py(p.lat, H);
+    if (t < 1800) {
+      ctx.strokeStyle = p.color; ctx.globalAlpha = 1 - t / 1800; ctx.lineWidth = 2 * K;
+      ctx.beginPath(); ctx.arc(x, y, p.size * K * (0.4 + t / 1800 * 2.6), 0, 7); ctx.stroke();
+    }
+    ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0, 1 - t / 8000) * .9;
+    ctx.beginPath(); ctx.arc(x, y, 2.6 * K, 0, 7); ctx.fill();
   }
   ctx.globalAlpha = 1;
   requestAnimationFrame(draw);
