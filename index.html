@@ -136,6 +136,15 @@ dialog::backdrop{background:rgba(5,9,18,.75)}
 .pp{font-family:var(--display);font-weight:800;font-size:16px;padding:9px 18px;background:var(--weather);border-color:var(--weather);color:#06121a}
 .pp[aria-pressed=true]{background:var(--events);border-color:var(--events);color:#1a1200}
 body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--events);color:#1a1200;padding:3px 16px;border-radius:999px;font-family:var(--display);font-weight:800;z-index:2;pointer-events:none}
+#monpanel.wide{position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0;border-radius:12px 12px 0 0;border-bottom:0;height:34vh;display:flex;flex-direction:column;padding:10px 18px;box-shadow:0 -8px 30px rgba(0,0,0,.5)}
+#monpanel.wide.tall{height:62vh}
+#monpanel.wide h2{margin:0}
+#monpanel.wide .row{margin-bottom:8px}
+#monpanel.wide #mon-ctl{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-bottom:8px}
+#monpanel.wide #mon-ctl>*{margin:0!important}
+#monpanel.wide pre#mon{flex:1;min-height:0;height:auto;white-space:pre;overflow:hidden;font-size:12.5px;line-height:1.45}
+#mon-tall{display:none}
+#monpanel.wide #mon-tall{display:inline-block}
 </style>
 </head>
 <body>
@@ -227,7 +236,8 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
 
     <section class="panel">
       <h2>Activity</h2>
-      <div id="log" aria-live="off"></div></section><section class="panel"><h2>MIDI monitor <span class="src" id="mon-state">· live</span></h2>
+      <div id="log" aria-live="off"></div></section><section class="panel" id="monpanel"><div class="row"><h2>MIDI monitor <span class="src" id="mon-state">· live</span></h2><div class="btns"><button id="mon-tall">Taller</button><button id="mon-size">Wider</button></div></div>
+      <div id="mon-ctl">
       <div class="chips" id="mon-types">
         <label class="chip"><input type="checkbox" data-mt="note"><span>Notes</span></label>
         <label class="chip"><input type="checkbox" data-mt="cc"><span>Controllers</span></label>
@@ -240,6 +250,7 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
         <input type="text" id="mon-q" placeholder="Search, e.g. wildfire" style="flex:1;min-width:0;width:auto">
       </div>
       <div class="btns" style="margin-bottom:8px"><button id="mon-all">Show all</button><button id="mon-none">None</button><button id="mon-pause">Pause</button><button id="mon-clear">Clear</button></div>
+      </div>
       <pre id="mon"></pre>
     </section>
 
@@ -322,6 +333,7 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
     <h3>MIDI monitor</h3>
     <p>The monitor in the side panel shows the latest messages as they are sent, with what triggered each one: for example a wildfire, a quake and its location, a city’s weather, an asteroid or a flare class. Controller lines show the module and stream. It also works in preview mode with no port selected.</p>
     <p>Use the filters above the monitor to focus on what matters: switch message types on or off (notes, controllers, pitch bend, aftertouch), tick only the sources you want, pick a channel, or search for a word such as “wildfire”. <b>Pause</b> freezes the display so you can read it, <b>Clear</b> empties it and <b>Show all</b> resets the filters. The filters only change what you see here and in the full-screen display, not what is sent. Your choices are remembered.</p>
+    <p><b>Wider</b> docks the monitor across the full width of the screen, handy for long labels. In that mode <b>Taller</b> makes the panel bigger, and <b>Narrower</b> puts it back in the side panel. Your size is remembered too.</p>
 
     <h3>The map</h3>
     <ul>
@@ -1751,6 +1763,21 @@ $('#mon-all').addEventListener('click', () => { MODS.forEach(m => { MF.mods[m.id
 $('#mon-none').addEventListener('click', () => { MODS.forEach(m => { MF.mods[m.id] = 0; }); syncMF(); saveMF(); });
 $('#mon-pause').addEventListener('click', e => { MF.paused = !MF.paused; e.target.textContent = MF.paused ? 'Resume' : 'Pause'; });
 $('#mon-clear').addEventListener('click', () => { MON.length = 0; $('#mon').textContent = ''; });
+const monPanel = $('#monpanel'), monHome = monPanel.parentNode, monNext = monPanel.nextElementSibling, MS = { wide: false, tall: false };
+try { Object.assign(MS, JSON.parse(localStorage.getItem('earthmidi-monsize'))); } catch (e) {}
+function applyMonSize() {
+  if (MS.wide) document.body.appendChild(monPanel);
+  else if (monPanel.parentNode !== monHome) monHome.insertBefore(monPanel, monNext);
+  monPanel.classList.toggle('wide', !!MS.wide); monPanel.classList.toggle('tall', !!MS.tall);
+  $('#mon-size').textContent = MS.wide ? 'Narrower' : 'Wider';
+  $('#mon-tall').textContent = MS.tall ? 'Shorter' : 'Taller';
+  document.body.style.paddingBottom = MS.wide ? (monPanel.offsetHeight + 12) + 'px' : '';
+  try { localStorage.setItem('earthmidi-monsize', JSON.stringify(MS)); } catch (e) {}
+}
+$('#mon-size').addEventListener('click', () => { MS.wide = !MS.wide; if (!MS.wide) MS.tall = false; applyMonSize(); });
+$('#mon-tall').addEventListener('click', () => { MS.tall = !MS.tall; applyMonSize(); });
+addEventListener('resize', () => { if (MS.wide) document.body.style.paddingBottom = (monPanel.offsetHeight + 12) + 'px'; });
+applyMonSize();
 const help = $('#help');
 $('#btn-help').addEventListener('click', () => help.showModal());
 $('#help-x').addEventListener('click', () => help.close());
@@ -1758,7 +1785,7 @@ help.addEventListener('click', e => { if (e.target === help) help.close(); });
 mapUI(); setInterval(pump, 40); setInterval(() => {
   const filt = MODS.some(m => !MF.mods[m.id]) || Object.values(MF.types).some(v => !v) || MF.ch || MF.q.trim();
   $('#mon-state').textContent = MF.paused ? '· paused' : filt ? '· filtered' : '· live';
-  if (!MF.paused) $('#mon').textContent = monLines(16).join('\n');
+  if (!MF.paused) $('#mon').textContent = monLines(MS.wide ? Math.max(8, Math.floor($('#mon').clientHeight / 18)) : 16).join('\n');
 }, 200);
 every(quakePoll, 30000);
 every(quakeDay, 300000);
