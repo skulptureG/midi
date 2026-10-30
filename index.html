@@ -224,12 +224,27 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
         <button class="danger" id="btn-panic">Panic</button>
       </div>
       <div class="soundbox">
-        <label><span><input type="checkbox" id="snd-on"> Built-in chime</span></label>
+        <label><span><input type="checkbox" id="snd-on"> Built-in sound</span></label>
+        <label><span class="src">Sound</span><select id="snd-type"><option value="chime">Chime, bright bell</option><option value="calm">Calm, soft with a long release</option><option value="pad">Pad, slow and warm</option></select></label>
         <label><span class="src">Volume</span><input type="range" id="snd-vol" min="0" max="100" value="40"><output id="snd-vol-o">40%</output></label>
+        <label><span class="src">Reverb</span><input type="range" id="snd-verb" min="0" max="100" value="50"><output id="snd-verb-o">50%</output></label>
         <div class="src">Hear every note without any MIDI. Notes only; controllers are silent.</div>
       </div>
     </section>
 
+    <section class="panel" id="cvpanel">
+      <h2>CV output (optional)</h2>
+      <label class="field" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="cv-on"> <span style="color:var(--text);font-size:13px">Also send control voltage (CV)</span></label>
+      <p class="help" style="margin:0 0 8px">For modular gear. Needs a DC-coupled audio interface. Not needed for a MIDI-to-CV box: the normal MIDI output already drives it.</p>
+      <div id="cv-opts" hidden>
+        <div class="midi-state" id="cv-state">Off</div>
+        <label class="field"><span>Audio output (multichannel, DC-coupled)</span><select id="cv-dev"><option value="">Default output</option></select></label>
+        <label class="field"><span>Interface full scale (what 1.0 equals)</span><select id="cv-fs"><option value="10">±10 V</option><option value="5">±5 V</option></select></label>
+        <label class="field"><span>Note at 0 V (1 V per octave)</span><select id="cv-zero"><option value="12">C0 (note 12)</option><option value="24">C1 (note 24)</option><option value="36">C2 (note 36)</option><option value="48">C3 (note 48)</option><option value="60">C4 (note 60)</option></select></label>
+        <div class="btns"><button id="cv-names">Show device names</button><button id="cv-test">Test: sweep output 1</button></div>
+        <p class="help" style="margin:8px 0 0">Assign outputs on each card under Note output, and per stream in the Controller mapping. Never connect these outputs to speakers or headphones.</p>
+      </div>
+    </section>
     <section class="panel">
       <h2>Musical settings</h2>
       <label class="field"><span>Key</span>
@@ -291,7 +306,7 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
       <li>In your DAW, Chataigne or lighting software, enable that port as an input and listen on channels 1 to 15.</li>
       <li>Press <b>Send test chord</b> to check the link. <b>Panic</b> clears any stuck notes.</li>
     </ol>
-    <p>With no port selected the page runs in preview mode: the map, log and monitor still work, and the built-in chime lets you hear the notes.</p>
+    <p>With no port selected the page runs in preview mode: the map, log and monitor still work, and the built-in sound lets you hear the notes.</p>
 
     <h3>Earth and Space tabs</h3>
     <p>The filled, highlighted tab (green for Earth, violet for Space) is the one you are looking at. The tabs only change what you see: every module keeps running and sending MIDI whichever tab is open. Use the On switch on a card to mute a module.</p>
@@ -300,8 +315,20 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
       <li><b>Space:</b> space station, Earth’s motion and forces, space weather, solar X-rays, NOAA storm scales, asteroids, solar flares and CMEs.</li>
     </ul>
 
-    <h3>Built-in chime</h3>
-    <p>To hear and see it working without any MIDI, switch on <b>Built-in chime</b> (in the MIDI output panel, or the Sound button at the top, or press <kbd>M</kbd>) and set the volume. Every note that plays also sounds as a soft bell in your browser, panned by longitude where a module uses pan. Notes are shifted by whole octaves into a comfortable listening range, so the pitch names match but very low notes will sound higher. Controllers are silent. Browsers only allow audio after you click, so it always starts off, and Pause all silences it too.</p>
+    <h3>CV output (modular)</h3>
+    <p><b>If you have a MIDI-to-CV box, you don’t need this.</b> The normal MIDI output (notes, controllers, pitch bend) already drives it. This option is for sending real control voltage straight from the computer, using a <b>DC-coupled multichannel audio interface</b> such as the Expert Sleepers ES-9 or ES-8. An ordinary audio interface blocks DC and will not work.</p>
+    <p>Tick <b>Also send control voltage (CV)</b> in the CV output panel, choose your interface, and set its full scale (what 1.0 equals; check your interface’s manual). Then give each module outputs under <b>Note output</b>: <b>pitch</b> (1 volt per octave, with the 0 V note you choose), <b>gate</b> (5 V while a note plays, with a brief dip between notes so envelopes retrigger) and <b>velocity</b> (0 to 5 V). Each stream in the Controller mapping also has a <b>CV out</b> menu that sends it as 0 to 5 V. Outputs are numbered from 1; only as many as your interface has will work. CV is monophonic per output, so the latest note wins.</p>
+    <p>Use <b>Test: sweep output 1</b> to check the connection with a meter or scope. Pause all and Panic drop the gates to 0 V. <b>Safety:</b> never connect CV outputs to speakers, headphones or line inputs. DC can damage them. Use Chrome or Edge, which can pick the output device.</p>
+
+    <h3>Built-in sound</h3>
+    <p>To hear and see it working without any MIDI, switch on <b>Built-in sound</b> (in the MIDI output panel, the Sound button at the top, or press <kbd>M</kbd>). Every note that plays also sounds in your browser. Choose from three sounds:</p>
+    <ul>
+      <li><b>Chime:</b> a bright, short bell.</li>
+      <li><b>Calm:</b> a soft, glassy tone with a gentle start and a long release of several seconds, for quiet spaces.</li>
+      <li><b>Pad:</b> a warm, slowly swelling pad built from detuned layers, with a filter that opens as each note blooms and a very long fade.</li>
+    </ul>
+    <p><b>Reverb</b> adds a large, soft space and is strongest on Calm and Pad. Turn it down for a drier sound. Notes are shifted by whole octaves into a comfortable range for each sound, so the pitch names match but very low notes sound higher. Overlapping notes are limited to protect your computer. Controllers are silent. Browsers only allow audio after a click, so it always starts off, and Pause all silences it too.</p>
+    <p>For an installation, try Calm or Pad at a modest volume with the births, deaths, planet clock and weather modules: together they make a slow, shifting ambient field.</p>
 
     <h3>Pause and resume</h3>
     <p><b>Pause all</b> (top right, or the <kbd>Space</kbd> bar) silences everything at once. It sends all-notes-off, stops the loops and sequencers, and holds the controllers where they are. Data keeps updating in the background, and quakes that arrive while paused are skipped. <b>Resume</b> sends the current controller values again and restarts the loops from the beginning. A “Paused” label shows on the map, including in full screen.</p>
@@ -320,7 +347,7 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
     </ul>
 
     <h3>Controller mapping</h3>
-    <p>Every data stream can be sent as CC, pitch bend or aftertouch, on its own channel and CC number. <b>Range %</b> zooms in on the part of the data you care about and stretches it to 0 to 127. <b>Invert</b> flips it and <b>Smooth</b> slows the changes. A live bar shows each stream’s output. Your setup saves automatically. Use Export and Import to move it between machines, and Reset to go back to the defaults.</p>
+    <p>Every data stream can be sent as CC, pitch bend or aftertouch, on its own channel and CC number. <b>Range %</b> zooms in on the part of the data you care about and stretches it to 0 to 127. <b>Invert</b> flips it and <b>Smooth</b> slows the changes. A live bar shows each stream’s output. <b>CV out</b> also sends the stream as a control voltage (see CV output). Your setup saves automatically. Use Export and Import to move it between machines, and Reset to go back to the defaults.</p>
 
     <h3>Default controller numbers</h3>
     <ul>
@@ -371,7 +398,7 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
     <p>Births and deaths are separate modules on channels 11 and 12, each with its own Note output settings. <b>Play one note per</b> thins the notes so it isn’t too busy, though every event still counts, pulses on the map and fires its pulse controller (CC113 and CC116). The cards show estimated totals since midnight UTC.</p>
 
     <h3>Keys</h3>
-    <p><kbd>Space</kbd> pause or resume everything, <kbd>M</kbd> built-in chime on or off, <kbd>F</kbd> full screen, <kbd>?</kbd> this help, <kbd>Esc</kbd> closes popups and full screen.</p>
+    <p><kbd>Space</kbd> pause or resume everything, <kbd>M</kbd> built-in sound on or off, <kbd>F</kbd> full screen, <kbd>?</kbd> this help, <kbd>Esc</kbd> closes popups and full screen.</p>
 
     <h3>Data sources</h3>
     <p>USGS and EMSC earthquakes, wheretheiss.at, NOAA space weather (solar wind, GOES X-ray and proton flux, storm scales), NASA EONET, Open-Meteo, NASA NeoWs and DONKI, the World Bank (population, birth and death rates), Blitzortung.org (lightning) and Natural Earth coastlines. The planet clock and Earth motion modules are calculated on your computer from astronomical formulas and need no internet. An internet connection is needed. The only things stored are your settings and your NASA key, in this browser.</p>
@@ -380,7 +407,7 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
     <h3>If something is not working</h3>
     <ul>
       <li><b>No sound:</b> check loopMIDI is running with a port created, the port is selected here, enabled as an input in your software, and that a track is listening on that channel.</li>
-      <li><b>Built-in chime is silent:</b> switch Sound on first (browsers need a click before playing audio), raise the volume, and check your device volume and that the module’s notes are on.</li>
+      <li><b>Built-in sound is silent:</b> switch Sound on first (browsers need a click before playing audio), raise the volume, and check your device volume and that the module’s notes are on.</li>
       <li><b>“Web MIDI not supported”:</b> use Chrome or Edge on a desktop. If MIDI is blocked when opening the file directly, serve it from localhost.</li>
       <li><b>A card shows an error:</b> that feed is unreachable or rate-limited. The others keep working. For NASA rate limits, add your own key. “HTTP 503” means NASA’s servers are briefly down: the page keeps showing the last good data and retries every 5 minutes.</li>
       <li><b>No coastlines:</b> they load from the internet. Check your connection, or ignore them, since the map works without.</li>
@@ -559,13 +586,13 @@ const STREAMS = [
   ['motion',84,'Orbital speed'],['motion',85,'Distance from the Sun'],['motion',86,'Sunlight intensity'],['motion',87,'Moon distance'],['motion',88,'Moon tide strength'],['motion',89,'Spring and neap tide'],['motion',94,'Rotation speed under the Sun']
 ];
 const RT = {}, ST = {};
-for (const [id, n] of STREAMS) RT[id + ':' + n] = { mode: 'cc', ch: 0, cc: n, lo: 0, hi: 100, inv: 0, sm: 0, on: 1 };
-for (const m of MODS) { m.notes = 1; m.np = { ...NP0[m.id] }; m.flt = { p: '', lo: 0, hi: 100 }; }
-const snap = () => ({ RT, mods: MODS.map(m => ({ id: m.id, on: m.on, ch: m.ch, notes: m.notes, np: m.np, flt: m.flt })) });
+for (const [id, n] of STREAMS) RT[id + ':' + n] = { mode: 'cc', ch: 0, cc: n, lo: 0, hi: 100, inv: 0, sm: 0, cv: 0, on: 1 };
+for (const m of MODS) { m.notes = 1; m.np = { ...NP0[m.id] }; m.flt = { p: '', lo: 0, hi: 100 }; m.cv = { p: 0, g: 0, v: 0 }; }
+const snap = () => ({ RT, mods: MODS.map(m => ({ id: m.id, on: m.on, ch: m.ch, notes: m.notes, np: m.np, flt: m.flt, cv: m.cv })) });
 function restore(o) {
   if (!o) return;
   for (const k in (o.RT || {})) if (RT[k]) Object.assign(RT[k], o.RT[k]);
-  for (const x of (o.mods || [])) { const m = byId(x.id); if (!m) continue; m.on = x.on; m.ch = x.ch; m.notes = x.notes; Object.assign(m.np, x.np); Object.assign(m.flt, x.flt); }
+  for (const x of (o.mods || [])) { const m = byId(x.id); if (!m) continue; m.on = x.on; m.ch = x.ch; m.notes = x.notes; Object.assign(m.np, x.np); Object.assign(m.flt, x.flt); Object.assign(m.cv, x.cv); }
 }
 const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(snap())); } catch (e) {} };
 try { restore(JSON.parse(localStorage.getItem(KEY))); } catch (e) {}
@@ -582,12 +609,14 @@ function noteUI(m) {
   const inp = (p, a, b) => `<input type="number" data-m="${m.id}" data-f="${p}" min="${a}" max="${b}">`;
   const chk = p => `<input type="checkbox" data-m="${m.id}" data-f="${p}">`;
   const rng = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => `<option>${a + i}</option>`).join('');
+  const cvo = '<option value="0">Off</option>' + rng(1, 16);
   return `<details><summary>Note output</summary><div class="npg">
     <label>${chk('notes')} Send notes</label>
     <label>Pitch from ${sel('np.pitch', o())} ${chk('np.pinv')} invert</label>
     <label>Velocity from ${sel('np.vel', o('Fixed'))} ${inp('np.vmin', 1, 127)} to ${inp('np.vmax', 1, 127)}</label>
     <label>Length from ${sel('np.dur', o('Fixed'))} ${inp('np.dmin', 20, 8000)} to ${inp('np.dmax', 20, 8000)} ms</label>
     <label>Pan (CC10) from ${sel('np.pan', o('None'))}</label>
+    <label>CV out (optional): pitch ${sel('cv.p', cvo, 1)} gate ${sel('cv.g', cvo, 1)} velocity ${sel('cv.v', cvo, 1)}</label>
     <label>Span ${sel('np.span', rng(1, 5), 1)} octaves, starting ${sel('np.off', rng(-2, 5), 1)} above the lowest</label>
     <label>Only play when ${sel('flt.p', o('Always'))} is ${inp('flt.lo', 0, 100)} to ${inp('flt.hi', 0, 100)} %</label>
   </div></details>`;
@@ -662,16 +691,25 @@ function monLines(n) {
   }
   return out;
 }
-/* ---------- built-in chime (Web Audio) ---------- */
-const SND = { ctx: null, master: null, on: false, voices: 0, vol: 40 };
-try { const sv = localStorage.getItem('earthmidi-vol'); if (sv !== null && sv !== '') SND.vol = clamp(+sv || 0, 0, 100); } catch (e) {}
+/* ---------- built-in sound (Web Audio): chime, calm, pad ---------- */
+const SND = { ctx: null, master: null, rev: null, on: false, voices: 0, vol: 40, type: 'chime', verb: 50 };
+const VOICES = { chime: { lo: 200, hi: 2000, send: .25, cap: 24 }, calm: { lo: 180, hi: 1300, send: .5, cap: 30 }, pad: { lo: 110, hi: 800, send: .65, cap: 30 } };
+try {
+  const sv = JSON.parse(localStorage.getItem('earthmidi-snd'));
+  if (sv) { SND.vol = clamp(+(sv.vol ?? 40), 0, 100); SND.verb = clamp(+(sv.verb ?? 50), 0, 100); if (VOICES[sv.type]) SND.type = sv.type; }
+} catch (e) {}
+const saveSnd = () => { try { localStorage.setItem('earthmidi-snd', JSON.stringify({ vol: SND.vol, type: SND.type, verb: SND.verb })); } catch (e) {} };
 function sndInit() {
   if (SND.ctx) return;
   const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
-  SND.ctx = new C();
-  const comp = SND.ctx.createDynamicsCompressor(); SND.master = SND.ctx.createGain();
-  SND.master.gain.value = (SND.vol / 100) ** 2;
-  SND.master.connect(comp); comp.connect(SND.ctx.destination);
+  const c = SND.ctx = new C(), comp = c.createDynamicsCompressor();
+  SND.master = c.createGain(); SND.master.gain.value = (SND.vol / 100) ** 2;
+  SND.master.connect(comp); comp.connect(c.destination);
+  const len = Math.floor(c.sampleRate * 3.4), ir = c.createBuffer(2, len, c.sampleRate);
+  for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let k = 0; k < len; k++) d[k] = (Math.random() * 2 - 1) * Math.pow(1 - k / len, 2.4); }
+  const conv = c.createConvolver(); conv.buffer = ir;
+  SND.rev = c.createGain(); SND.rev.gain.value = SND.verb / 100;
+  SND.rev.connect(conv); conv.connect(SND.master);
 }
 function setSound(on) {
   SND.on = on;
@@ -682,32 +720,60 @@ function setSound(on) {
 function setVol(v) {
   SND.vol = v; $('#snd-vol').value = v; $('#snd-vol-o').textContent = v + '%';
   if (SND.master && !S.paused) SND.master.gain.setTargetAtTime((v / 100) ** 2, SND.ctx.currentTime, .02);
-  try { localStorage.setItem('earthmidi-vol', String(v)); } catch (e) {}
+  saveSnd();
+}
+function setVerb(v) {
+  SND.verb = v; $('#snd-verb').value = v; $('#snd-verb-o').textContent = v + '%';
+  if (SND.rev) SND.rev.gain.setTargetAtTime(v / 100, SND.ctx.currentTime, .05);
+  saveSnd();
 }
 function sndDuck(p) { if (SND.master) SND.master.gain.setTargetAtTime(p ? 0 : (SND.vol / 100) ** 2, SND.ctx.currentTime, .04); }
 function chime(note, vel, dur, delay, pan) {
-  if (!SND.on || !SND.ctx || SND.voices > 24) return;
-  const c = SND.ctx, t = c.currentTime + Math.max(0, delay) / 1000;
-  let f = 440 * Math.pow(2, (note - 69) / 12); while (f < 200) f *= 2; while (f > 2000) f /= 2;
-  const len = Math.min(4, .5 + dur / 1000 * .9), out = c.createGain();
-  out.gain.setValueAtTime(0, t); out.gain.linearRampToValueAtTime(Math.pow(vel / 127, 1.4) * .5, t + .006); out.gain.exponentialRampToValueAtTime(.0001, t + len);
+  const T = SND.type, V = VOICES[T];
+  if (!SND.on || !SND.ctx || SND.voices > V.cap) return;
+  const c = SND.ctx, t = c.currentTime + Math.max(0, delay) / 1000, hold = dur / 1000, a = Math.pow(vel / 127, 1.3);
+  let f = 440 * Math.pow(2, (note - 69) / 12); while (f < V.lo) f *= 2; while (f > V.hi) f /= 2;
+  const out = c.createGain(); out.gain.setValueAtTime(0, t);
+  let end, parts, filt = null;
+  if (T === 'chime') {
+    const len = Math.min(4, .5 + hold * .9); end = t + len;
+    out.gain.linearRampToValueAtTime(a * .5, t + .006); out.gain.exponentialRampToValueAtTime(.0001, end);
+    parts = [[1, 1], [2, .45], [2.76, .3], [4.2, .15], [5.4, .08]].map((p, k) => ({ r: p[0], g: p[1], w: 'sine', d: 0, dec: len / (1 + k * .8) }));
+  } else {
+    const pad = T === 'pad', atk = pad ? 1.1 : .09, pk = a * (pad ? .3 : .38), h = Math.max(hold, pad ? 1.4 : .3), rel = pad ? 6.5 : 5 + Math.min(hold, 4) * .5;
+    end = t + atk + h + rel;
+    out.gain.linearRampToValueAtTime(pk, t + atk); out.gain.linearRampToValueAtTime(pk * .8, t + atk + h); out.gain.exponentialRampToValueAtTime(.0001, end);
+    filt = c.createBiquadFilter(); filt.type = 'lowpass'; filt.Q.value = .7;
+    if (pad) {
+      filt.frequency.setValueAtTime(Math.max(300, f * 1.5), t);
+      filt.frequency.linearRampToValueAtTime(Math.min(f * 4, 3200), t + atk + h * .5);
+      filt.frequency.exponentialRampToValueAtTime(Math.max(250, f), end);
+      parts = [{ r: 1, g: .2, w: 'sawtooth', d: -10 }, { r: 1, g: .2, w: 'sawtooth', d: 0 }, { r: 1, g: .2, w: 'sawtooth', d: 10 }, { r: .5, g: .5, w: 'sine', d: 0 }];
+    } else {
+      filt.frequency.value = 2400;
+      parts = [{ r: 1, g: 1, w: 'triangle', d: 0 }, { r: 1, g: .55, w: 'sine', d: 6 }, { r: 2, g: .25, w: 'sine', d: 0 }];
+    }
+  }
+  const dest = filt || out; if (filt) filt.connect(out);
   let tail = out;
   if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = pan == null ? 0 : clamp(pan / 127 * 2 - 1, -1, 1); out.connect(p); tail = p; }
   tail.connect(SND.master);
-  const parts = [[1, 1], [2, .45], [2.76, .3], [4.2, .15], [5.4, .08]]; let ended = 0;
-  SND.voices++;
-  parts.forEach(([r, g], i) => {
-    const o = c.createOscillator(), gg = c.createGain();
-    o.type = 'sine'; o.frequency.value = Math.min(f * r, 12000);
-    gg.gain.setValueAtTime(g, t); gg.gain.exponentialRampToValueAtTime(.0001, t + len / (1 + i * .8));
-    o.connect(gg); gg.connect(out); o.start(t); o.stop(t + len + .05);
-    o.onended = () => { if (++ended === parts.length) { SND.voices--; try { out.disconnect(); } catch (e) {} } };
+  const sg = c.createGain(); sg.gain.value = V.send; tail.connect(sg); sg.connect(SND.rev);
+  let ended = 0; SND.voices++;
+  parts.forEach(p => {
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = p.w; o.frequency.value = Math.min(f * p.r, 12000); o.detune.value = p.d;
+    if (p.dec) { g.gain.setValueAtTime(p.g, t); g.gain.exponentialRampToValueAtTime(.0001, t + p.dec); } else g.gain.value = p.g;
+    o.connect(g); g.connect(dest); o.start(t); o.stop(end + .05);
+    o.onended = () => { if (++ended === parts.length) { SND.voices--; try { out.disconnect(); sg.disconnect(); } catch (e) {} } };
   });
 }
 $('#snd-on').addEventListener('change', e => setSound(e.target.checked));
 $('#btn-snd').addEventListener('click', () => setSound(!SND.on));
 $('#snd-vol').addEventListener('input', e => setVol(+e.target.value));
-setVol(SND.vol);
+$('#snd-verb').addEventListener('input', e => setVerb(+e.target.value));
+$('#snd-type').addEventListener('change', e => { SND.type = e.target.value; saveSnd(); });
+$('#snd-type').value = SND.type; setVol(SND.vol); setVerb(SND.verb);
 
 function play(id, note, vel, dur, delay = 0, pan = null, label = '') {
   const m = byId(id); if (!m.on || !m.notes || S.paused) return;
@@ -717,6 +783,7 @@ function play(id, note, vel, dur, delay = 0, pan = null, label = '') {
   if (pan != null) tx([0xB0 | ch, 10, clamp(Math.round(pan), 0, 127)], t, 0);
   tx([0x90 | ch, note, vel], t, 1, label, id);
   chime(note, vel, dur, delay, pan);
+  cvNote(m, note, vel, dur, delay);
   tx([0x80 | ch, note, 0], t + dur, 0);
   m.count++; flash(id, delay);
 }
@@ -744,7 +811,9 @@ function pump() {
     if (r.inv) v = 1 - v;
     s.cur = s.cur == null ? v : s.cur + (v - s.cur) * (1 - r.sm / 100);
     if (pumpN % 4 === 0) { const b = document.getElementById('b-' + k); if (b) b.style.width = (s.cur * 100) + '%'; }
-    if (!m.on || !r.on || r.mode === 'off' || S.paused) continue;
+    if (!m.on || !r.on || S.paused) continue;
+    if (r.cv && CV.on && CV.ctx) cvStream(r.cv, s.cur);
+    if (r.mode === 'off') continue;
     const ch = (r.ch || m.ch) - 1, d = Math.round(s.cur * 127), q = r.mode === 'bend' ? Math.round(s.cur * 16383) : d;
     const sig = `${r.mode}:${ch}:${r.cc}:${q}`;
     if (s.sent === sig) continue;
@@ -761,7 +830,7 @@ function mapUI() {
     const d = document.createElement('details'); d.className = 'mp'; d.dataset.g = GROUP[m.id]; d.open = m.id !== 'weather'; d.style.setProperty('--c', `var(${m.color})`);
     const c = (k, f, h, n) => `<td><${h[0]} data-k="${k}" data-f="${f}"${h[1] || ''}>${h[2] || ''}</${h[0]}></td>`;
     d.innerHTML = `<summary>${m.name} <span class="src">${rows.length} streams</span></summary><div class="tw"><table>
-      <tr><th></th><th>Stream</th><th>Send as</th><th>Channel</th><th>CC</th><th>Range %</th><th>Invert</th><th>Smooth</th><th>On</th></tr>` +
+      <tr><th></th><th>Stream</th><th>Send as</th><th>Channel</th><th>CC</th><th>Range %</th><th>Invert</th><th>Smooth</th><th>CV out</th><th>On</th></tr>` +
       rows.map(([id, n, label]) => { const k = id + ':' + n; return `<tr><td><div class="bar"><i id="b-${k}"></i></div></td><td>${label}</td>
         ${c(k, 'mode', ['select', '', '<option value="cc">CC</option><option value="bend">Pitch bend</option><option value="at">Aftertouch</option><option value="off">Off</option>'])}
         ${c(k, 'ch', ['select', '', '<option value="0">Follow</option>' + opt])}
@@ -769,6 +838,7 @@ function mapUI() {
         <td><input type="number" data-k="${k}" data-f="lo" min="0" max="100"> to <input type="number" data-k="${k}" data-f="hi" min="0" max="100"></td>
         ${c(k, 'inv', ['input', ' type="checkbox"'])}
         ${c(k, 'sm', ['input', ' type="range" min="0" max="95"'])}
+        ${c(k, 'cv', ['select', ' data-n="1"', '<option value="0">Off</option>' + opt])}
         ${c(k, 'on', ['input', ' type="checkbox"'])}</tr>`; }).join('') + '</table></div>';
     box.appendChild(d);
   }
@@ -836,13 +906,13 @@ function setPort() {
 }
 $('#port').addEventListener('change', setPort);
 $('#btn-connect').addEventListener('click', initMidi);
-$('#btn-panic').addEventListener('click', panic);
+$('#btn-panic').addEventListener('click', () => { panic(); cvGatesOff(); });
 function setPaused(p) {
   if (p === S.paused) return;
   S.paused = p; S.gen++;
   document.body.classList.toggle('paused', p);
   const b = $('#btn-pp'); b.textContent = p ? '▶ Resume' : '❚❚ Pause all'; b.setAttribute('aria-pressed', p);
-  if (p) { panic(); setTimeout(() => { if (S.paused) panic(); }, 450); }
+  if (p) { panic(); cvGatesOff(); setTimeout(() => { if (S.paused) panic(); }, 450); }
   else { resendAll(); MODS.forEach(m => onEnable(m.id)); }
   sndDuck(p);
 }
@@ -1787,6 +1857,61 @@ function motionTick() {
     MO.last = now; fire('motion', bag, 0, 'Earth heartbeat');
   }
 }
+
+/* ---------- CV output (control voltage through a DC-coupled audio interface) ---------- */
+const CV = { on: false, ctx: null, src: [], n: 8, fs: 10, zero: 36, dev: '' };
+try { const sv = JSON.parse(localStorage.getItem('earthmidi-cv')); if (sv) { CV.fs = +sv.fs || 10; CV.zero = +sv.zero || 36; CV.dev = sv.dev || ''; } } catch (e) {}
+const saveCV = () => { try { localStorage.setItem('earthmidi-cv', JSON.stringify({ fs: CV.fs, zero: CV.zero, dev: CV.dev })); } catch (e) {} };
+const cvState = (cls, t) => { const e = $('#cv-state'); e.className = 'midi-state ' + cls; e.textContent = t; };
+async function cvStart() {
+  const C = window.AudioContext || window.webkitAudioContext;
+  if (!C) { cvState('bad', 'Web Audio is not available in this browser.'); return false; }
+  try {
+    const c = new C({ latencyHint: 'interactive' });
+    if (CV.dev && c.setSinkId) await c.setSinkId(CV.dev);
+    CV.n = Math.min(16, Math.max(2, c.destination.maxChannelCount || 2));
+    c.destination.channelCount = CV.n; c.destination.channelCountMode = 'explicit'; c.destination.channelInterpretation = 'discrete';
+    const mrg = c.createChannelMerger(CV.n); mrg.connect(c.destination);
+    CV.src = Array.from({ length: CV.n }, (_, i) => { const o = c.createConstantSource(); o.offset.value = 0; o.connect(mrg, 0, i); o.start(); return o; });
+    await c.resume(); CV.ctx = c;
+    cvState('ok', `Sending CV on ${CV.n} output channels.` + (CV.n < 4 ? ' This output has few channels: choose a multichannel interface below.' : ''));
+    return true;
+  } catch (e) { cvState('bad', 'Could not start CV output: ' + e.message); return false; }
+}
+function cvStop() { if (CV.ctx) { try { CV.ctx.close(); } catch (e) {} } CV.ctx = null; CV.src = []; cvState('', 'Off'); }
+function cvNote(m, note, vel, dur, delay) {
+  if (!CV.on || !CV.ctx) return;
+  const t = CV.ctx.currentTime + Math.max(0, delay) / 1000, o = ch => ch && CV.src[ch - 1] && CV.src[ch - 1].offset;
+  const P = o(m.cv.p), G = o(m.cv.g), Vl = o(m.cv.v);
+  if (P) P.setValueAtTime(clamp((note - CV.zero) / 12 / CV.fs, -1, 1), t);
+  if (Vl) Vl.setValueAtTime(vel / 127 * 5 / CV.fs, t);
+  if (G) { G.cancelScheduledValues(t); G.setValueAtTime(0, t); G.setValueAtTime(5 / CV.fs, t + .003); G.setValueAtTime(0, t + Math.max(.01, dur / 1000)); }
+}
+function cvStream(ch, v) { const o = CV.src[ch - 1]; if (o) o.offset.setTargetAtTime(clamp(v * 5 / CV.fs, -1, 1), CV.ctx.currentTime, .03); }
+function cvGatesOff() {
+  if (!CV.ctx) return; const t = CV.ctx.currentTime;
+  MODS.forEach(m => { const o = m.cv.g && CV.src[m.cv.g - 1]; if (o) { o.offset.cancelScheduledValues(t); o.offset.setValueAtTime(0, t); } });
+}
+async function cvDevices(ask) {
+  if (!navigator.mediaDevices) return;
+  if (ask) { try { (await navigator.mediaDevices.getUserMedia({ audio: true })).getTracks().forEach(x => x.stop()); } catch (e) {} }
+  const ds = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audiooutput'), sel = $('#cv-dev');
+  sel.innerHTML = '<option value="">Default output</option>' + ds.map((d, i) => `<option value="${d.deviceId}">${d.label || 'Audio output ' + (i + 1)}</option>`).join('');
+  sel.value = CV.dev;
+}
+$('#cv-on').addEventListener('change', async e => {
+  $('#cv-opts').hidden = !e.target.checked;
+  if (e.target.checked) { CV.on = await cvStart(); e.target.checked = CV.on; } else { CV.on = false; cvStop(); }
+});
+$('#cv-dev').addEventListener('change', async e => { CV.dev = e.target.value; saveCV(); if (CV.on) { cvStop(); CV.on = await cvStart(); $('#cv-on').checked = CV.on; } });
+$('#cv-fs').addEventListener('change', e => { CV.fs = +e.target.value; saveCV(); });
+$('#cv-zero').addEventListener('change', e => { CV.zero = +e.target.value; saveCV(); });
+$('#cv-names').addEventListener('click', () => cvDevices(true));
+$('#cv-test').addEventListener('click', () => {
+  if (!CV.ctx) return; const o = CV.src[0].offset, t = CV.ctx.currentTime;
+  o.cancelScheduledValues(t); o.setValueAtTime(0, t); o.linearRampToValueAtTime(5 / CV.fs, t + 2); o.linearRampToValueAtTime(0, t + 4);
+});
+$('#cv-fs').value = CV.fs; $('#cv-zero').value = CV.zero; cvDevices(false).catch(() => {});
 
 /* ---------- enable hooks and boot ---------- */
 function onEnable(id) { if (id === 'quake') quakeLoop(); if (id === 'space') spaceLoop(false); if (id === 'neo') neoLoop(); if (id === 'donki') donkiLoop(); if (id === 'xray') xrRestart(); }
