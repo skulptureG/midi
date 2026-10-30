@@ -11,7 +11,7 @@
 :root{
   --abyss:#0c1424; --panel:#131e33; --panel2:#182640; --line:#26364f;
   --text:#dbe6f5; --muted:#8397b3;
-  --quake:#ff7a59; --iss:#8ee8ff; --space:#b99bff; --events:#ffd166; --weather:#6ee7b7; --neo:#ff8fcf; --donki:#c8f26b; --emsc:#ffa94d; --xray:#ff5d8f; --scales:#5ec8ff; --lightning:#fff27a; --clock:#ffd6a5; --motion:#a5b4fc; --births:#ffe08a; --deaths:#9fb0cf;
+  --quake:#ff7a59; --iss:#8ee8ff; --space:#b99bff; --events:#ffd166; --weather:#6ee7b7; --neo:#ff8fcf; --donki:#c8f26b; --emsc:#ffa94d; --xray:#ff5d8f; --scales:#5ec8ff; --lightning:#fff27a; --clock:#ffd6a5; --motion:#a5b4fc; --ships:#4fb3ff; --lanes:#9bb7ff; --births:#ffe08a; --deaths:#9fb0cf;
   --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
 }
@@ -86,12 +86,14 @@ input[type=text]{background:var(--abyss);color:var(--text);border:1px solid var(
 .tabs button{display:flex;align-items:baseline;background:var(--panel);border:1px solid var(--line);border-bottom:0;border-radius:12px 12px 0 0;padding:11px 24px;font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:-.02em;color:var(--muted);cursor:pointer;margin-bottom:-4px}
 .tabs button[data-t=earth]{--a:var(--weather)}
 .tabs button[data-t=space]{--a:var(--space)}
+.tabs button[data-t=transport]{--a:var(--ships)}
 .tabs button small{font:400 12px var(--mono);margin-left:10px;letter-spacing:0}
 .tabs button:hover{color:var(--text);border-color:var(--a)}
 .tabs button[aria-selected=true]{background:var(--a);border-color:var(--a);color:#06121a}
 .tabs button[aria-selected=true] small{color:rgba(6,18,26,.78)}
 .tabs button[aria-selected=true]::before{content:"●";font-size:11px;margin-right:9px;align-self:center}
-.app[data-tab=earth] [data-g=space],.app[data-tab=space] [data-g=earth]{display:none}
+.app[data-tab=earth] [data-g=space],.app[data-tab=earth] [data-g=transport],.app[data-tab=space] [data-g=earth],.app[data-tab=space] [data-g=transport],.app[data-tab=transport] [data-g=earth],.app[data-tab=transport] [data-g=space]{display:none}
+.app[data-tab=transport]{--tab:var(--ships)}
 .mapctl{position:absolute;top:10px;right:10px;display:flex;gap:8px;align-items:flex-start;z-index:2;transition:opacity .4s}
 .layers{margin:0;background:rgba(19,30,51,.92)}
 .mapwrap.pfs{position:fixed;inset:0;z-index:50;border-radius:0}
@@ -162,6 +164,7 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
   <nav class="tabs" role="tablist" aria-label="Data groups">
     <button role="tab" data-t="earth" aria-selected="true">Earth<small>quakes, events, weather, lightning, people, planet clock</small></button>
     <button role="tab" data-t="space" aria-selected="false">Space<small>ISS, orbit and forces, solar wind, X-rays, storms, asteroids, flares</small></button>
+    <button role="tab" data-t="transport" aria-selected="false">Transport<small>ships and shipping lanes</small></button>
   </nav>
   <main>
     <div class="panel mapwrap">
@@ -182,6 +185,9 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
           <label><input type="checkbox" data-l="events"> Natural events</label>
           <label><input type="checkbox" data-l="cities"> Weather cities</label>
           <label><input type="checkbox" data-l="lightning"> Lightning</label>
+          <span class="src">Transport</span>
+          <label><input type="checkbox" data-l="lanes"> Shipping lanes and straits</label>
+          <label><input type="checkbox" data-l="ships"> Live ships</label>
           <span class="src">Live activity</span>
           <label><input type="checkbox" data-l="pulses"> Note pulses and markers</label>
           <label><input type="checkbox" data-l="people"> Births and deaths</label>
@@ -197,6 +203,8 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
         <span><i style="background:var(--iss)"></i>ISS</span>
         <span><i style="background:var(--events)"></i>Natural events</span>
         <span><i style="background:var(--weather)"></i>Weather cities</span>
+        <span><i style="background:var(--ships)"></i>Ships</span>
+        <span><i style="background:var(--lanes)"></i>Shipping lanes</span>
         <span><i style="background:var(--births)"></i>Births</span>
         <span><i style="background:var(--deaths)"></i>Deaths</span>
         <span><i style="background:var(--clock)"></i>Sunrise and sunset</span>
@@ -303,16 +311,17 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
     <ol>
       <li>Install <a href="https://www.tobias-erichsen.de/software/loopmidi.html" target="_blank" rel="noopener">loopMIDI</a> (Windows), open it and click the + button to create a port. Leave it running. On macOS, turn on the IAC Driver instead.</li>
       <li>Open this page in Chrome or Edge and press <b>Connect MIDI</b>. Choose your port (loopMIDI is picked automatically).</li>
-      <li>In your DAW, Chataigne or lighting software, enable that port as an input and listen on channels 1 to 15.</li>
+      <li>In your DAW, Chataigne or lighting software, enable that port as an input and listen on channels 1 to 16.</li>
       <li>Press <b>Send test chord</b> to check the link. <b>Panic</b> clears any stuck notes.</li>
     </ol>
     <p>With no port selected the page runs in preview mode: the map, log and monitor still work, and the built-in sound lets you hear the notes.</p>
 
-    <h3>Earth and Space tabs</h3>
-    <p>The filled, highlighted tab (green for Earth, violet for Space) is the one you are looking at. The tabs only change what you see: every module keeps running and sending MIDI whichever tab is open. Use the On switch on a card to mute a module.</p>
+    <h3>Earth, Space and Transport tabs</h3>
+    <p>The filled, highlighted tab (green for Earth, violet for Space, blue for Transport) is the one you are looking at. The tabs only change what you see: every module keeps running and sending MIDI whichever tab is open. Use the On switch on a card to mute a module.</p>
     <ul>
       <li><b>Earth:</b> earthquakes (USGS and EMSC), natural events, weather chimes, lightning, the planet clock, modelled births and deaths.</li>
       <li><b>Space:</b> space station, Earth’s motion and forces, space weather, solar X-rays, NOAA storm scales, asteroids, solar flares and CMEs.</li>
+      <li><b>Transport:</b> live ships in the Baltic, and modelled global shipping lanes.</li>
     </ul>
 
     <h3>CV output (modular)</h3>
@@ -334,7 +343,7 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
     <p><b>Pause all</b> (top right, or the <kbd>Space</kbd> bar) silences everything at once. It sends all-notes-off, stops the loops and sequencers, and holds the controllers where they are. Data keeps updating in the background, and quakes that arrive while paused are skipped. <b>Resume</b> sends the current controller values again and restarts the loops from the beginning. A “Paused” label shows on the map, including in full screen.</p>
 
     <h3>Channels</h3>
-    <p>1 Earthquakes, 2 Space station, 3 Space weather, 4 Natural events, 5 Weather, 6 Asteroids, 7 Solar flares and CMEs, 8 Earthquakes (EMSC), 9 Solar X-rays, 10 NOAA storm scales, 11 Births, 12 Deaths, 13 Lightning, 14 Planet clock, 15 Earth motion and forces. Change any of them with the Note channel menu on its card. The test chord plays on the earthquake channel.</p>
+    <p>1 Earthquakes, 2 Space station, 3 Space weather, 4 Natural events, 5 Weather, 6 Asteroids, 7 Solar flares and CMEs, 8 Earthquakes (EMSC), 9 Solar X-rays, 10 NOAA storm scales, 11 Births, 12 Deaths, 13 Lightning, 14 Planet clock, 15 Earth motion and forces and Shipping lanes, 16 Ships. There are only 16 MIDI channels, so some modules share one. Change any of them with the Note channel menu on its card. The test chord plays on the earthquake channel.</p>
 
     <h3>Module cards</h3>
     <ul>
@@ -366,6 +375,8 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
       <li><b>Lightning (ch 13):</b> CC108 strikes per second, CC109 latest strike latitude, CC118 latest strike longitude, CC119 pulse on every strike.</li>
       <li><b>Planet clock (ch 14):</b> CC24 UTC time of day, CC25 Earth rotation angle, CC26 year progress, CC27 share of people in daylight, CC28 share of people awake.</li>
       <li><b>Earth motion and forces (ch 15):</b> CC84 orbital speed, CC85 distance from the Sun, CC86 sunlight intensity, CC87 Moon distance, CC88 Moon tide strength, CC89 spring and neap tide index, CC94 rotation speed under the Sun.</li>
+      <li><b>Ships, live Baltic (ch 16):</b> CC44 ships in range, CC45 average speed, CC46 fastest ship, CC47 share under way, CC48 average heading.</li>
+      <li><b>Shipping lanes, modelled (ch 15):</b> CC95 pulse on every transit, CC96 transits per second, CC97 how busy the latest strait is.</li>
     </ul>
 
     <h3>MIDI monitor</h3>
@@ -378,10 +389,14 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
       <li><b>Click</b> any dot, a note pulse, a lightning strike, the ISS, the sun or the moon for details. Pulses show what triggered them and have a button to play that note again. Quakes, events and cities have a button to play just that item.</li>
       <li><b>ISS ground track:</b> the dashed line shows where the station will be over roughly the next 2 hours, with markers every 30 minutes. It is a simple prediction, so it drifts over time.</li>
       <li><b>Sun and moon:</b> each marker sits at the point on Earth directly beneath it, and the moon shows its current phase. The shaded area is night.</li>
-      <li><b>Layers</b> shows or hides each part of the map, in four groups. Map: coastlines (which need an internet connection), grid, day and night. Sky: sun, moon, ISS and its ground track. Earth data: quake history, natural events, weather cities, lightning. Live activity: note pulses and markers, births and deaths, sunrise and sunset.</li>
+      <li><b>Layers</b> shows or hides each part of the map, in five groups. Map: coastlines (which need an internet connection), grid, day and night. Sky: sun, moon, ISS and its ground track. Earth data: quake history, natural events, weather cities, lightning. Transport: shipping lanes and straits, live ships. Live activity: note pulses and markers, births and deaths, sunrise and sunset.</li>
       <li><b>Pulses and markers:</b> every note that plays on the map draws a ring and leaves a dot that fades over 8 seconds, so you can click it. Switch births and deaths or sunrise and sunset off separately if the map gets busy.</li>
       <li><b>Full screen</b> (button or <kbd>F</kbd>) gives a clean display with a live monitor and log. The cursor and buttons hide after a few seconds without movement.</li>
     </ul>
+
+    <h3>Transport</h3>
+    <p><b>Ships (live, Baltic)</b> shows real vessels broadcasting AIS, the tracking signal ships carry, from the free Digitraffic service run by the Finnish transport agency. Its coverage is the Baltic Sea and Finnish waters, typically hundreds to a couple of thousand ships. Worldwide live ship tracking is only available from paid or keyed services, so this is the open source that works with no sign-up. Each ship appears on the map as a dot with a heading line (dimmer if it is stationary), and the ships are played as a looping west to east sweep: latitude sets pitch, speed sets velocity and length. Click a ship for its identifier, speed, heading and status.</p>
+    <p><b>Shipping lanes (modelled)</b> is a model, not a live feed. The dashed lines are approximate major routes, and the diamonds are 12 busy straits and canals, such as Malacca, Suez, Panama, Hormuz and the English Channel. Random ships pass each strait at its typical daily rate (rounded, and real figures vary from year to year), sped up by the Speed setting. Each transit pulses on the map and can play a note; bigger ships play longer notes. Use the Layers menu to hide the lanes or the ships.</p>
 
     <h3>Planet clock</h3>
     <p>The turning of the Earth as music. A note plays at every sunrise and sunset over 34 major population centres: sunrise in the upper half of the pitch range, sunset in the lower half, bigger cities louder and longer. That is about one event every 20 minutes, and each is labelled in the monitor (for example “sunrise over Lagos”). An optional chime plays on every UTC hour. The controllers give you a smooth clock: UTC time of day and Earth’s rotation angle as repeating ramps, the year as a very slow ramp, and the share of people in daylight and awake (7am to 11pm local solar time).</p>
@@ -401,7 +416,7 @@ body.paused .mapwrap::after{content:"Paused";position:absolute;top:12px;left:50%
     <p><kbd>Space</kbd> pause or resume everything, <kbd>M</kbd> built-in sound on or off, <kbd>F</kbd> full screen, <kbd>?</kbd> this help, <kbd>Esc</kbd> closes popups and full screen.</p>
 
     <h3>Data sources</h3>
-    <p>USGS and EMSC earthquakes, wheretheiss.at, NOAA space weather (solar wind, GOES X-ray and proton flux, storm scales), NASA EONET, Open-Meteo, NASA NeoWs and DONKI, the World Bank (population, birth and death rates), Blitzortung.org (lightning) and Natural Earth coastlines. The planet clock and Earth motion modules are calculated on your computer from astronomical formulas and need no internet. An internet connection is needed. The only things stored are your settings and your NASA key, in this browser.</p>
+    <p>USGS and EMSC earthquakes, wheretheiss.at, NOAA space weather (solar wind, GOES X-ray and proton flux, storm scales), NASA EONET, Open-Meteo, NASA NeoWs and DONKI, the World Bank (population, birth and death rates), Fintraffic Digitraffic (ships), Blitzortung.org (lightning) and Natural Earth coastlines. The planet clock and Earth motion modules are calculated on your computer from astronomical formulas and need no internet. An internet connection is needed. The only things stored are your settings and your NASA key, in this browser.</p>
     <p><b>NASA API key:</b> the asteroid and solar flare feeds use a shared demo key by default, which is rate-limited and refreshes every 3 hours. For faster updates (every 30 minutes), get a free key at <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>, paste it into the NASA API key box on the Asteroids or Solar flares card (Space tab) and press Enter. Both cards share the one key.</p>
 
     <h3>If something is not working</h3>
@@ -523,14 +538,24 @@ const MODS = [
   { id: 'motion', name: 'Earth motion and forces', src: 'Computed from orbital maths', color: '--motion', ch: 15, on: true,
     cc: 'Where the planet is and what is pulling on it, calculated live. CC84 orbital speed, CC85 distance from the Sun, CC86 sunlight intensity, CC87 Moon distance, CC88 Moon tide strength, CC89 spring and neap tide index, CC94 rotation speed under the Sun. An optional heartbeat note is shaped by these values.',
     extra: `
-      <div class="row ctl"><label>Heartbeat note <select id="mo-beat"><option value="0">Off</option><option value="10">Every 10 seconds</option><option value="30" selected>Every 30 seconds</option><option value="60">Every minute</option></select></label></div>` }
+      <div class="row ctl"><label>Heartbeat note <select id="mo-beat"><option value="0">Off</option><option value="10">Every 10 seconds</option><option value="30" selected>Every 30 seconds</option><option value="60">Every minute</option></select></label></div>` },
+  { id: 'ships', name: 'Ships (live, Baltic)', src: 'Digitraffic AIS', color: '--ships', ch: 16, on: true,
+    cc: 'Real ships broadcasting AIS in the Baltic Sea, Gulf of Finland and Gulf of Bothnia (Finnish coverage). Every ship becomes a note in a west to east sweep that loops. CC44 ships in range, CC45 average speed, CC46 fastest ship, CC47 share under way, CC48 average heading.',
+    extra: `
+      <div class="row ctl"><label><input type="checkbox" id="sh-replay" checked> Sweep the ships as a loop</label></div>
+      <div class="row ctl"><label>Loop length <input type="range" id="sh-loop" min="10" max="120" value="30"><output id="sh-loop-o">30 s</output></label></div>` },
+  { id: 'lanes', name: 'Shipping lanes (modelled)', src: 'Typical strait traffic', color: '--lanes', ch: 15, on: true,
+    cc: 'A model of global shipping: random ships passing 12 major straits and canals at their typical daily rates, sped up by the setting below. Larger ships play longer notes. CC95 pulse on every transit, CC96 transits per second, CC97 how busy the latest strait is.',
+    extra: `
+      <div class="row ctl"><label>Speed <select id="ln-warp"><option value="1">Real time</option><option value="60" selected>60 times faster</option><option value="300">300 times faster</option><option value="1000">1000 times faster</option></select></label></div>
+      <div class="row ctl"><label>Play one note per <select id="ln-thin"><option value="1">transit</option><option value="2" selected>2 transits</option><option value="5">5 transits</option><option value="10">10 transits</option></select></label></div>` }
 ];
 const byId = id => MODS.find(m => m.id === id);
 const colorOf = m => getComputedStyle(document.documentElement).getPropertyValue(m.color).trim();
 
 /* ---------- routing model ---------- */
 const KEY = 'earthmidi-v2';
-const GROUP = { quake: 'earth', events: 'earth', weather: 'earth', iss: 'space', space: 'space', neo: 'space', donki: 'space', emsc: 'earth', xray: 'space', scales: 'space', births: 'earth', deaths: 'earth', lightning: 'earth', clock: 'earth', motion: 'space' };
+const GROUP = { quake: 'earth', events: 'earth', weather: 'earth', iss: 'space', space: 'space', neo: 'space', donki: 'space', emsc: 'earth', xray: 'space', scales: 'space', births: 'earth', deaths: 'earth', lightning: 'earth', clock: 'earth', motion: 'space', ships: 'transport', lanes: 'transport' };
 const P = {
   quake: { mag: 'Magnitude', depth: 'Depth', lon: 'Longitude', lat: 'Latitude' },
   iss: { lat: 'Latitude', lon: 'Longitude', day: 'Daylight' },
@@ -543,6 +568,8 @@ const P = {
   xray: { flux: 'X-ray flux', cls: 'Flare class' },
   scales: { level: 'Highest scale' },
   lightning: { lat: 'Latitude', lon: 'Longitude', rand: 'Random' },
+  ships: { speed: 'Speed', course: 'Heading', lat: 'Latitude', lon: 'Longitude', moving: 'Under way (100) or still (0)' },
+  lanes: { vol: 'Strait traffic', size: 'Ship size', lat: 'Latitude', lon: 'Longitude' },
   clock: { tone: 'Pitch (sunrise high, sunset low)', lat: 'Latitude', lon: 'Longitude', rise: 'Sunrise 100, sunset 0', pop: 'City size' },
   motion: { speed: 'Orbital speed', sun: 'Sun distance', light: 'Sunlight intensity', moon: 'Moon distance', mtide: 'Moon tide strength', tide: 'Spring and neap tide', rot: 'Rotation speed under the Sun' },
   births: { lat: 'Latitude', lon: 'Longitude', rand: 'Random' },
@@ -559,6 +586,8 @@ const NP0 = {
   emsc: { pitch: 'depth', pinv: 1, vel: 'mag', dur: 'mag', pan: 'lon', span: 3, off: 1, vmin: 20, vmax: 127, dmin: 150, dmax: 3000 },
   xray: { pitch: 'flux', pinv: 0, vel: 'flux', dur: 'cls', pan: '', span: 3, off: 0, vmin: 30, vmax: 120, dmin: 150, dmax: 1500 },
   scales: { pitch: 'level', pinv: 0, vel: 'level', dur: 'level', pan: '', span: 2, off: 0, vmin: 40, vmax: 127, dmin: 400, dmax: 4000 },
+  ships: { pitch: 'lat', pinv: 0, vel: 'speed', dur: 'speed', pan: 'lon', span: 3, off: 1, vmin: 35, vmax: 110, dmin: 300, dmax: 2500 },
+  lanes: { pitch: 'lat', pinv: 0, vel: 'size', dur: 'size', pan: 'lon', span: 2, off: 0, vmin: 40, vmax: 105, dmin: 600, dmax: 4000 },
   clock: { pitch: 'tone', pinv: 0, vel: 'pop', dur: 'pop', pan: 'lon', span: 3, off: 1, vmin: 45, vmax: 115, dmin: 400, dmax: 3000 },
   motion: { pitch: 'tide', pinv: 0, vel: 'light', dur: 'moon', pan: '', span: 3, off: 0, vmin: 40, vmax: 110, dmin: 800, dmax: 4000 },
   lightning: { pitch: 'lat', pinv: 0, vel: 'rand', dur: 'rand', pan: 'lon', span: 3, off: 1, vmin: 40, vmax: 120, dmin: 60, dmax: 500 },
@@ -583,7 +612,9 @@ const STREAMS = [
   ['deaths',116,'Death pulse'],['deaths',117,'Deaths per second'],
   ['lightning',108,'Strikes per second'],['lightning',109,'Latest strike latitude'],['lightning',118,'Latest strike longitude'],['lightning',119,'Strike pulse'],
   ['clock',24,'UTC time of day'],['clock',25,'Earth rotation angle'],['clock',26,'Year progress'],['clock',27,'People in daylight'],['clock',28,'People awake'],
-  ['motion',84,'Orbital speed'],['motion',85,'Distance from the Sun'],['motion',86,'Sunlight intensity'],['motion',87,'Moon distance'],['motion',88,'Moon tide strength'],['motion',89,'Spring and neap tide'],['motion',94,'Rotation speed under the Sun']
+  ['motion',84,'Orbital speed'],['motion',85,'Distance from the Sun'],['motion',86,'Sunlight intensity'],['motion',87,'Moon distance'],['motion',88,'Moon tide strength'],['motion',89,'Spring and neap tide'],['motion',94,'Rotation speed under the Sun'],
+  ['ships',44,'Ships in range'],['ships',45,'Average speed'],['ships',46,'Fastest ship'],['ships',47,'Share under way'],['ships',48,'Average heading'],
+  ['lanes',95,'Transit pulse'],['lanes',96,'Transits per second'],['lanes',97,'Busyness of the latest strait']
 ];
 const RT = {}, ST = {};
 for (const [id, n] of STREAMS) RT[id + ':' + n] = { mode: 'cc', ch: 0, cc: n, lo: 0, hi: 100, inv: 0, sm: 0, cv: 0, on: 1 };
@@ -933,7 +964,7 @@ $('#len').addEventListener('input', e => { S.len = e.target.value / 100; $('#len
 
 /* ---------- map ---------- */
 const cv = $('#map'), ctx = cv.getContext('2d');
-const MAP = { dayQuakes: [], events: [], pulses: [], trail: [], iss: null, strikes: [] };
+const MAP = { dayQuakes: [], events: [], pulses: [], trail: [], iss: null, strikes: [], ships: [] };
 const CITIES = [['Reykjavík',64.15,-21.94],['London',51.51,-0.13],['New York',40.71,-74.0],['São Paulo',-23.55,-46.63],
                 ['Cape Town',-33.92,18.42],['Mumbai',19.08,72.88],['Tokyo',35.68,139.69],['Sydney',-33.87,151.21]];
 const fsEl = $('.mapwrap');
@@ -964,7 +995,7 @@ addEventListener('keydown', e => {
 });
 let idleT; fsEl.addEventListener('mousemove', () => { fsEl.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => fsEl.classList.add('idle'), 3000); });
 
-const LY = { land: 1, grid: 1, term: 1, quakes: 1, events: 1, cities: 1, iss: 1, track: 1, moon: 1, lightning: 1, people: 1, clock: 1, sun: 1, pulses: 1 };
+const LY = { land: 1, grid: 1, term: 1, quakes: 1, events: 1, cities: 1, iss: 1, track: 1, moon: 1, lightning: 1, people: 1, clock: 1, lanes: 1, ships: 1, sun: 1, pulses: 1 };
 try { Object.assign(LY, JSON.parse(localStorage.getItem('earthmidi-layers'))); } catch (e) {}
 document.querySelectorAll('[data-l]').forEach(el => {
   el.checked = !!LY[el.dataset.l];
@@ -1030,6 +1061,8 @@ function pick(mx, my) {
   if (LY.track && I.track) for (const p of I.track) if (p.m && p.m % 30 === 0) t(p.lon, p.lat, { kind: 'track', p }, .5);
   if (LY.iss && MAP.iss) t(MAP.iss.lon, MAP.iss.lat, { kind: 'iss' }, .35);
   if (LY.lightning) for (const q of MAP.strikes) t(q.lon, q.lat, { kind: 'strike', q });
+  if (LY.ships) for (const v of MAP.ships) t(v.lon, v.lat, { kind: 'ship', v });
+  if (LY.lanes) for (const c of CHOKE) t(c[2], c[1], { kind: 'strait', c }, .5);
   if (LY.pulses) for (const p of MAP.pulses) if (p.info && performance.now() >= p.t0 && pulseOn(p)) t(p.lon, p.lat, { kind: 'pulse', p }, .6);
   if (LY.sun) { const q = sunPoint(); t(q.lon, q.lat, { kind: 'sun' }, .35); }
   if (LY.moon) { const q = moonPoint(); t(q.lon, q.lat, { kind: 'moon' }, .35); }
@@ -1062,6 +1095,12 @@ cv.addEventListener('click', ev => {
     showPop(ev, `ISS in ${b.p.m} minutes`, [`Predicted over ${pos}`, 'Estimated from a simple orbit model, so it drifts over time.']);
   } else if (b.kind === 'sun') {
     showPop(ev, 'Sun', [`Directly overhead at ${pos}`, `Solar declination ${b.lat.toFixed(1)}°`]);
+  } else if (b.kind === 'ship') {
+    const v = b.v;
+    showPop(ev, 'Ship ' + v.mmsi, [`${v.sog.toFixed(1)} knots, heading ${v.cog < 360 ? Math.round(v.cog) + '°' : 'unknown'}`, NAVSTAT[v.nav] || 'Status unknown', pos, 'Live AIS from Digitraffic (Finnish coverage)']);
+  } else if (b.kind === 'strait') {
+    const c = b.c;
+    showPop(ev, c[0], [c[4], `About ${c[3]} ships a day, typically`, pos, 'A modelled rate, not a live count.']);
   } else if (b.kind === 'strike') {
     showPop(ev, 'Lightning strike', [pos, `${Math.round((Date.now() - b.q.t) / 1000)} s ago`, 'Data from Blitzortung.org']);
   } else if (b.kind === 'pulse') {
@@ -1132,6 +1171,18 @@ function draw() {
     ctx.fillStyle = 'rgba(3,6,14,.5)'; ctx.fill();
   }
   const qc = colorOf(byId('quake')), ec = colorOf(byId('events')), wc = colorOf(byId('weather')), ic = colorOf(byId('iss'));
+  if (LY.lanes) {
+    const lc = colorOf(byId('lanes'));
+    ctx.strokeStyle = lc; ctx.lineWidth = 1.2 * K; ctx.globalAlpha = .4; ctx.setLineDash([6 * K, 5 * K]);
+    for (const ln of LANES) {
+      ctx.beginPath();
+      ln.forEach((p, i) => { const x = px(p[1], W), y = py(p[0], H), q = ln[i - 1]; if (!q || Math.abs(p[1] - q[1]) > 180) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+      ctx.stroke();
+    }
+    ctx.setLineDash([]); ctx.globalAlpha = .9; ctx.fillStyle = lc;
+    for (const c of CHOKE) { const x = px(c[2], W), y = py(c[1], H), r = 3.4 * K; ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath(); ctx.fill(); }
+    ctx.globalAlpha = 1;
+  }
   if (LY.quakes) for (const q of MAP.dayQuakes) dotAt(q.lon, q.lat, (0.8 + (q.mag || 0) * 0.45) * K, qc, 0.35);
   if (LY.events) for (const e of MAP.events) dotAt(e.lon, e.lat, 2.2 * K, ec, 0.85);
   if (LY.cities) for (const c of CITIES) dotAt(c[2], c[1], 2 * K, wc, 0.9);
@@ -1139,6 +1190,15 @@ function draw() {
     const nowMs = Date.now(), lc = colorOf(byId('lightning'));
     MAP.strikes = MAP.strikes.filter(p => nowMs - p.t < 120000);
     for (const p of MAP.strikes) dotAt(p.lon, p.lat, 1.6 * K, lc, 1 - (nowMs - p.t) / 120000);
+  }
+  if (LY.ships && MAP.ships.length) {
+    const sc = colorOf(byId('ships')); ctx.strokeStyle = sc; ctx.fillStyle = sc; ctx.lineWidth = K;
+    for (const v of MAP.ships) {
+      const x = px(v.lon, W), y = py(v.lat, H), mv = v.sog > .5; ctx.globalAlpha = mv ? .95 : .45;
+      ctx.beginPath(); ctx.arc(x, y, 1.5 * K, 0, 7); ctx.fill();
+      if (mv && v.cog < 360) { const a = v.cog * Math.PI / 180; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.sin(a) * 5 * K, y - Math.cos(a) * 5 * K); ctx.stroke(); }
+    }
+    ctx.globalAlpha = 1;
   }
   if (LY.iss) {
     if (MAP.trail.length > 1) {
@@ -1913,6 +1973,87 @@ $('#cv-test').addEventListener('click', () => {
 });
 $('#cv-fs').value = CV.fs; $('#cv-zero').value = CV.zero; cvDevices(false).catch(() => {});
 
+/* ---------- transport: live ships (Digitraffic AIS) and modelled shipping lanes ---------- */
+const NAVSTAT = { 0: 'Under way using engine', 1: 'At anchor', 2: 'Not under command', 3: 'Restricted manoeuvrability', 4: 'Constrained by draught', 5: 'Moored', 6: 'Aground', 7: 'Engaged in fishing', 8: 'Under way sailing', 15: 'Status not defined' };
+const CHOKE = [['Strait of Malacca', 3.0, 100.8, 230, 'Between Malaysia and Indonesia'], ['Singapore Strait', 1.25, 103.9, 270, 'The gateway to Asian ports'], ['Taiwan Strait', 24.5, 119.5, 240, 'Between China and Taiwan'],
+  ['Suez Canal', 30.5, 32.3, 50, 'Red Sea to the Mediterranean'], ['Bab-el-Mandeb', 12.6, 43.3, 60, 'Entrance to the Red Sea'], ['Strait of Hormuz', 26.6, 56.4, 100, 'Mouth of the Persian Gulf'],
+  ['Bosporus', 41.1, 29.05, 120, 'Black Sea to the Mediterranean'], ['Strait of Gibraltar', 35.95, -5.6, 300, 'Atlantic to the Mediterranean'], ['English Channel', 50.9, 1.4, 400, 'The busiest sea lane in Europe'],
+  ['Danish Straits', 55.6, 12.7, 160, 'Into the Baltic Sea'], ['Panama Canal', 9.1, -79.7, 36, 'Atlantic to Pacific'], ['Cape of Good Hope', -34.4, 18.5, 70, 'The route around Africa']];
+const LANES = [
+  [[31, 122], [24.5, 119.5], [22, 114], [10, 108], [1.3, 104], [3, 100.8], [6, 80], [12.5, 50], [12.6, 43.3], [20, 38], [30.5, 32.3], [34, 26], [36, 15], [36, -5.6], [43.5, -9.5], [50, -3], [52, 4]],
+  [[3, 100], [-10, 70], [-30, 45], [-35, 20], [-20, 5], [0, -10], [20, -20], [45, -10], [50, -3]],
+  [[31, 122], [35, 150], [45, 179], [46, -179], [47, -150], [40, -130], [33.7, -118.3]],
+  [[50, -3], [49, -30], [42, -55], [40.5, -73.5]],
+  [[33.7, -118.3], [15, -100], [8, -82], [9.1, -79.7], [15, -75], [25, -80], [40.5, -73.5]],
+  [[9.1, -79.7], [20, -60], [35, -35], [48, -8]],
+  [[27, 51], [26.6, 56.4], [22, 62], [10, 70], [6, 80], [5, 95], [3, 100.8]],
+  [[1.3, 104], [10, 110], [22, 114.5], [31, 122], [35, 129], [35, 140]],
+  [[51, 2], [55, 5], [57.7, 10.5], [55.6, 12.7], [58, 20], [60, 25]],
+  [[36, -5.6], [37, 5], [35, 15], [35, 26], [41.1, 29.05], [43, 34]],
+  [[-24, -46], [-5, -30], [20, -25], [45, -10]],
+  [[29, -94.5], [25, -85], [25, -80], [32, -76], [40.5, -73.5]]];
+
+const SH = { list: [], loop: null, running: false };
+async function shipsPoll() {
+  try {
+    let d;
+    try { d = await getJSON('https://meri.digitraffic.fi/api/ais/v1/locations?from=' + (Date.now() - 15 * 60000)); }
+    catch (e) { d = await getJSON('https://meri.digitraffic.fi/api/ais/v1/locations'); }
+    const L = [];
+    for (const f of d.features || []) {
+      const p = f.properties || {}, c = f.geometry && f.geometry.coordinates;
+      if (!c || !Number.isFinite(c[0]) || !Number.isFinite(c[1]) || Math.abs(c[1]) > 90) continue;
+      L.push({ mmsi: f.mmsi || p.mmsi, lon: c[0], lat: c[1], sog: p.sog != null && p.sog < 102 ? p.sog : 0, cog: p.cog != null && p.cog < 360 ? p.cog : 360, nav: p.navStat });
+    }
+    SH.list = L; MAP.ships = L;
+    const mv = L.filter(v => v.sog > .5), avg = mv.length ? mv.reduce((a, v) => a + v.sog, 0) / mv.length : 0, fast = L.reduce((a, v) => Math.max(a, v.sog), 0);
+    const hv = mv.filter(v => v.cog < 360), hx = hv.reduce((a, v) => a + Math.sin(v.cog * Math.PI / 180), 0), hy = hv.reduce((a, v) => a + Math.cos(v.cog * Math.PI / 180), 0);
+    const head = hv.length ? (Math.atan2(hx, hy) * 180 / Math.PI + 360) % 360 : 0;
+    setCC('ships', 44, s01(L.length, 0, 1500) * 127); setCC('ships', 45, s01(avg, 0, 20) * 127); setCC('ships', 46, s01(fast, 0, 35) * 127);
+    setCC('ships', 47, (L.length ? mv.length / L.length : 0) * 127); setCC('ships', 48, head / 360 * 127);
+    setRO('ships', `${L.length} ships in range, ${mv.length} under way\nAverage ${avg.toFixed(1)} knots, fastest ${fast.toFixed(1)} knots\nCoverage: Baltic Sea and Finnish waters`);
+    setStatus('ships', 'Live from Finnish AIS stations. Checking every minute.');
+    if (!SH.running) shipsLoop();
+  } catch (e) { setStatus('ships', 'Could not reach Digitraffic: ' + e.message + '. Retrying in a minute.', true); }
+}
+function shipsLoop() {
+  clearTimeout(SH.loop);
+  if (!$('#sh-replay').checked || !byId('ships').on || !SH.list.length) { SH.running = false; return; }
+  SH.running = true;
+  const Lm = +$('#sh-loop').value * 1000, all = [...SH.list].sort((a, b) => a.lon - b.lon), k = Math.max(1, Math.ceil(all.length / 150)), pts = all.filter((_, i) => i % k === 0);
+  const lo = pts[0].lon, span = Math.max(.01, pts[pts.length - 1].lon - lo);
+  pts.forEach(v => {
+    const dl = (v.lon - lo) / span * Lm;
+    const n = fire('ships', { speed: s01(v.sog, 0, 25), course: v.cog < 360 ? v.cog / 360 : .5, lat: s01(v.lat, 53, 68), lon: s01(v.lon, 8, 32), moving: v.sog > .5 ? 1 : 0 }, dl, 'ship ' + v.mmsi + ' ' + v.sog.toFixed(1) + ' kn');
+    if (n != null) pulse(v.lon, v.lat, colorOf(byId('ships')), 4, dl);
+  });
+  SH.loop = setTimeout(shipsLoop, Lm);
+}
+const shRestart = () => { SH.running = false; shipsLoop(); };
+$('#sh-replay').addEventListener('change', shRestart);
+$('#sh-loop').addEventListener('input', e => { $('#sh-loop-o').textContent = e.target.value + ' s'; });
+$('#sh-loop').addEventListener('change', shRestart);
+
+const LN = { n: 0, env: 0 };
+function lanesSched(i) {
+  const rate = CHOKE[i][3] * +$('#ln-warp').value / 86400;
+  setTimeout(() => { lanesEvent(i); lanesSched(i); }, -Math.log(1 - Math.random()) / rate * 1000);
+}
+function lanesEvent(i) {
+  const c = CHOKE[i], m = byId('lanes'); LN.n++; LN.env = 127;
+  setCC('lanes', 97, s01(c[3], 0, 400) * 127);
+  if (S.paused || !m.on) return;
+  const note = LN.n % (+$('#ln-thin').value || 1) ? null : fire('lanes', { vol: s01(c[3], 0, 400), size: Math.random(), lat: s01(c[1], -60, 60), lon: s01(c[2], -180, 180) }, 0, 'ship through ' + c[0]);
+  pulse(c[2], c[1], colorOf(m), 5);
+}
+function lanesTick() { LN.env *= .88; setCC('lanes', 95, LN.env); }
+function lanesReadout() {
+  const tot = CHOKE.reduce((a, c) => a + c[3], 0), warp = +$('#ln-warp').value, r = tot * warp / 86400;
+  setCC('lanes', 96, s01(r, 0, 5) * 127);
+  setRO('lanes', `Modelled: about ${tot.toLocaleString()} ship transits a day through 12 straits and canals\nAt ${warp === 1 ? 'real time' : warp + ' times faster'}: ${r.toFixed(2)} per second\n${LN.n} transits this session`);
+  setStatus('lanes', 'A model using typical daily traffic, not live positions. Rates are approximate.');
+}
+
 /* ---------- enable hooks and boot ---------- */
 function onEnable(id) { if (id === 'quake') quakeLoop(); if (id === 'space') spaceLoop(false); if (id === 'neo') neoLoop(); if (id === 'donki') donkiLoop(); if (id === 'xray') xrRestart(); }
 
@@ -1932,7 +2073,7 @@ tabBtns.forEach((b, i) => {
   });
 });
 let savedTab = 'earth'; try { savedTab = localStorage.getItem('earthmidi-tab') || 'earth'; } catch (e) {}
-setTab(savedTab === 'space' ? 'space' : 'earth');
+setTab(['space', 'transport'].includes(savedTab) ? savedTab : 'earth');
 const saveMF = () => { try { localStorage.setItem('earthmidi-monfilter', JSON.stringify({ mods: MF.mods, types: MF.types, ch: MF.ch, q: MF.q })); } catch (e) {} };
 $('#mon-mods').innerHTML = MODS.map(m => `<label class="chip" style="--c:var(${m.color})"><input type="checkbox" data-mm="${m.id}"><span>${m.name}</span></label>`).join('');
 $('#mon-ch').insertAdjacentHTML('beforeend', Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join(''));
@@ -1986,6 +2127,7 @@ emsc(); every(emscCC, 60000); every(xrayPoll, 60000); every(scalesPoll, 60000);
 every(vitalPoll, 21600000); vitalSched('b'); vitalSched('d'); setInterval(vitalTick, 40); every(vitalReadout, 1000);
 setInterval(lightWatch, 1000); setInterval(lightTick, 40); every(lightReadout, 1000);
 every(clockTick, 1000); every(motionTick, 1000);
+every(shipsPoll, 60000); CHOKE.forEach((_, i) => lanesSched(i)); setInterval(lanesTick, 40); every(lanesReadout, 1000);
 every(() => { const sp = sunPoint(); setCC('space', 36, s01(sp.lon, -180, 180) * 127); setCC('space', 37, s01(sp.lat, -23.5, 23.5) * 127); const mp = moonPoint(); setCC('space', 38, (1 - Math.cos(2 * Math.PI * moonPhase())) / 2 * 127); setCC('space', 39, s01(mp.lon, -180, 180) * 127); }, 5000);
 setInterval(() => {
   if (!fsEl.classList.contains('fs')) return;
