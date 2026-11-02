@@ -183,6 +183,10 @@ button,summary,.chip,.sq-cell,.sq-lab,.sq-h{touch-action:manipulation;-webkit-ta
 .thgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 6px}
 .thgrid label{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:11px}
 input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer}
+#globe{display:none;position:absolute;left:0;top:0;width:100%;height:calc(100% - var(--kh,0px));cursor:grab;touch-action:pan-y}
+#globe:active{cursor:grabbing}
+.mapwrap.globe #globe{display:block}
+.mapwrap.globe #map{visibility:hidden}
 </style>
 </head>
 <body>
@@ -204,8 +208,14 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
   <main>
     <div class="panel mapwrap">
       <canvas id="map" aria-label="World map showing live data points"></canvas>
+      <canvas id="globe" aria-hidden="true"></canvas>
       <div class="mapctl">
         <details class="layers"><summary>Layers</summary><div class="npg">
+          <span class="src">View</span>
+          <label>Map <select id="view-mode"><option value="flat">Flat map</option><option value="globe">Globe</option></select></label>
+          <label>Spin <input type="range" id="gl-speed" min="0" max="1000" value="400"><output id="gl-speed-o"></output></label>
+          <div class="btns"><button id="gl-real" type="button">Real time</button><label class="chip"><input type="checkbox" id="gl-rev"><span>Reverse</span></label></div>
+          <span class="src" id="gl-note"></span>
           <span class="src">Map</span>
           <label><input type="checkbox" data-l="land"> Coastlines</label>
           <label><input type="checkbox" data-l="grid"> Grid</label>
@@ -232,7 +242,7 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
           <label><input type="checkbox" data-l="people"> Births and deaths</label>
           <label><input type="checkbox" data-l="clock"> Sunrise and sunset</label>
         </div></details>
-        <button id="btn-fs">Full screen</button><button id="btn-kx">Exit kiosk</button>
+        <button id="btn-globe">Globe</button><button id="btn-fs">Full screen</button><button id="btn-kx">Exit kiosk</button>
       </div>
       <div class="hud"><div id="hud-top"></div><div id="hud-mon"></div><div id="hud-log"></div></div>
       <div id="kiosk-seq"><div id="kiosk-now"></div><canvas id="kiosk-cv"></canvas></div>
@@ -410,6 +420,14 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
       <li><b>Transport:</b> live ships in the Baltic, live aircraft worldwide, and modelled global shipping lanes.</li>
     </ul>
 
+    <h3>Globe view</h3>
+    <p>Switch the map to a 3D globe with the <b>Globe</b> button on the map (or the <kbd>G</kbd> key, or <b>View</b> in the Layers menu). Everything on the flat map appears on the globe: the layers, the twilight and aurora, the pulses and markers, the ships, aircraft and lanes. Click any point for its details, just as on the flat map.</p>
+    <ul>
+      <li><b>Spin:</b> the globe turns slowly by itself in Earth’s own direction. Use the <b>Spin</b> slider in the Layers menu to change the speed, from stopped up to about 30 degrees a second (finer control at the slow end). <b>Real time</b> sets Earth’s true rotation, one turn in 23 hours 56 minutes. <b>Reverse</b> turns it the other way.</li>
+      <li><b>Turn it yourself:</b> drag the globe to rotate it and tilt it (on a touch screen, drag sideways). Double-click to level the tilt. The globe pauses its spin while you hold it.</li>
+      <li><b>Notes:</b> the globe needs WebGL, which almost every current browser has; if yours does not, it says so and stays on the flat map. Labels bend near the edge of the globe, and details near the poles are stretched, as on any flat map wrapped around a sphere. Your choice of view and speed is remembered, and the globe works in kiosk mode too.</li>
+    </ul>
+
     <h3>Kiosk mode</h3>
     <p>A clean full-screen display for installations and public screens. Press the <b>Kiosk</b> button at the top, or the <kbd>K</kbd> key. The page fills the screen with just the map, the title and clock, and a large live feed of what is happening. The controls hide, the screen is kept awake where the browser allows it, and the cursor disappears when idle. You can still tap a dot for its details. Press <kbd>Esc</kbd> or <kbd>K</kbd> again, or move the mouse and use <b>Exit kiosk</b>.</p>
     <p>If the <b>Step sequencer</b> is on, the kiosk also shows the current sequence along the bottom: every source as a row, time across the top, the lit steps in each source’s colour, and a white frame around the step playing now. A line above it reads out the step, when the next step starts, and which sources are playing right now. When the sequencer is off, the map simply uses the whole screen.</p>
@@ -473,7 +491,7 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
       <li><b>Aurora oval:</b> the green to pink glow around each pole is NOAA’s live aurora forecast: the brighter and pinker, the higher the chance of visible aurora. The oval grows toward the equator in magnetic storms. Click any glowing area for the probability there. It refreshes every 5 minutes and needs an internet connection.</li>
       <li><b>Tectonic plate boundaries:</b> the orange lines mark where the Earth’s plates meet. Quakes and volcanoes cluster along them, so watch the quake dots trace them out. The lines come from the PB2002 plate model.</li>
       <li><b>Labels:</b> switch on City and strait labels in Layers to name the major cities and, with Shipping lanes on, the straits. Labels that would overlap are skipped, so full screen shows the most.</li>
-      <li><b>Layers</b> shows or hides each part of the map, in five groups. Map: coastlines, grid, day, night and twilight, tectonic plate boundaries, city and strait labels (coastlines and plate boundaries need an internet connection). Sky: sun, moon, aurora oval, ISS and its ground track. Earth data: quake history, natural events, weather cities, lightning. Transport: shipping lanes and straits, live ships, aircraft. Live activity: note pulses and markers, births and deaths, sunrise and sunset.</li>
+      <li><b>Layers</b> shows or hides each part of the map, in five groups. View: flat map or globe, with spin speed. Map: coastlines, grid, day, night and twilight, tectonic plate boundaries, city and strait labels (coastlines and plate boundaries need an internet connection). Sky: sun, moon, aurora oval, ISS and its ground track. Earth data: quake history, natural events, weather cities, lightning. Transport: shipping lanes and straits, live ships, aircraft. Live activity: note pulses and markers, births and deaths, sunrise and sunset.</li>
       <li><b>Pulses and markers:</b> every note that plays on the map draws a ring and leaves a dot that fades over 8 seconds, so you can click it. Switch births and deaths or sunrise and sunset off separately if the map gets busy.</li>
       <li><b>Full screen</b> (button or <kbd>F</kbd>) gives a clean display with a live monitor and log. The cursor and buttons hide after a few seconds without movement.</li>
     </ul>
@@ -482,6 +500,7 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
     <p><b>Ships (live, Baltic)</b> shows real vessels broadcasting AIS, the tracking signal ships carry, from the free Digitraffic service run by the Finnish transport agency. Its coverage is the Baltic Sea and Finnish waters, typically hundreds to a couple of thousand ships. Worldwide live ship tracking is only available from paid or keyed services, so this is the open source that works with no sign-up. Each ship appears on the map as a dot with a heading line (dimmer if it is stationary), and the ships are played as a looping west to east sweep: latitude sets pitch, speed sets velocity and length. Click a ship for its identifier, speed, heading and status.</p>
     <p><b>Aircraft</b> shows live flights from the OpenSky Network, a community network of ADS-B receivers that picks up the position, height, speed and heading each aircraft broadcasts. Choose the whole world, Europe, North America or Asia and the Pacific. Planes appear as small dots, brighter the higher they fly, and drift along their heading between updates so the map keeps moving. Click one for its callsign, country, height, speed and heading. The airspace is played as a looping west to east sweep, with height setting pitch and speed setting loudness and length, and the controllers follow the numbers in the air, average height and speed, and how many are climbing or descending.</p>
     <p>OpenSky’s free anonymous access allows about 400 credits a day and each update costs 4, so the page updates every 15 to 60 minutes (30 by default) and reuses its last update when you reload, to save credits. If the limit is reached the card says so and tries again later. OpenSky data is for research and non-commercial use.</p>
+    <p>If OpenSky cannot be reached from your browser (some networks and browsers block it), the page switches by itself to community ADS-B feeds: adsb.lol, then adsb.one, then airplanes.live. They only answer for a circle around a point, so the page asks about 6 to 32 busy airport areas, depending on the Area you chose, and shows the aircraft it finds there. That is a rich sample of the busiest airspace, not every plane, and it refreshes every 4 minutes. The card says which feed is in use. It tries OpenSky again from time to time.</p>
     <p><b>Shipping lanes (modelled)</b> is a model, not a live feed. The dashed lines are approximate major routes, and the diamonds are 12 busy straits and canals, such as Malacca, Suez, Panama, Hormuz and the English Channel. Random ships pass each strait at its typical daily rate (rounded, and real figures vary from year to year), sped up by the Speed setting. Each transit pulses on the map and can play a note; bigger ships play longer notes. Use the Layers menu to hide the lanes or the ships.</p>
 
     <h3>Aurora oval</h3>
@@ -528,10 +547,10 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
     <p>Use <b>Test: sweep output 1</b> to check the connection with a meter or scope. Pause all and Panic drop the gates to 0 V. <b>Safety:</b> never connect CV outputs to speakers, headphones or line inputs. DC can damage them. Use Chrome or Edge, which can pick the output device.</p>
 
     <h3>Keys</h3>
-    <p><kbd>Space</kbd> pause or resume everything, <kbd>M</kbd> built-in sound on or off, <kbd>K</kbd> kiosk mode, <kbd>F</kbd> full screen, <kbd>?</kbd> this help, <kbd>Esc</kbd> closes popups and full screen.</p>
+    <p><kbd>Space</kbd> pause or resume everything, <kbd>M</kbd> built-in sound on or off, <kbd>G</kbd> globe or flat map, <kbd>K</kbd> kiosk mode, <kbd>F</kbd> full screen, <kbd>?</kbd> this help, <kbd>Esc</kbd> closes popups and full screen.</p>
 
     <h3>Data sources</h3>
-    <p>USGS and EMSC earthquakes, wheretheiss.at, NOAA space weather (solar wind, GOES X-ray and proton flux, storm scales, aurora forecast), NASA EONET, Open-Meteo, NASA NeoWs and DONKI, the World Bank (population, birth and death rates), Fintraffic Digitraffic (ships), the OpenSky Network (aircraft), Blitzortung.org (lightning) Natural Earth coastlines and the PB2002 tectonic plate boundaries (via GitHub). The planet clock and Earth motion modules are calculated on your computer from astronomical formulas and need no internet. An internet connection is needed. The only things stored are your settings and your NASA key, in this browser.</p>
+    <p>USGS and EMSC earthquakes, wheretheiss.at, NOAA space weather (solar wind, GOES X-ray and proton flux, storm scales, aurora forecast), NASA EONET, Open-Meteo, NASA NeoWs and DONKI, the World Bank (population, birth and death rates), Fintraffic Digitraffic (ships), the OpenSky Network, adsb.lol, adsb.one and airplanes.live (aircraft), Blitzortung.org (lightning) Natural Earth coastlines and the PB2002 tectonic plate boundaries (via GitHub). The planet clock and Earth motion modules are calculated on your computer from astronomical formulas and need no internet. An internet connection is needed. The only things stored are your settings and your NASA key, in this browser.</p>
     <p><b>NASA API key:</b> the asteroid and solar flare feeds use a shared demo key by default, which is rate-limited and refreshes every 3 hours. For faster updates (every 30 minutes), get a free key at <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>, paste it into the NASA API key box on the Asteroids or Solar flares card (Space tab) and press Enter. Both cards share the one key.</p>
 
     <h3>If something is not working</h3>
@@ -541,7 +560,7 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
       <li><b>“Web MIDI not supported”:</b> use Chrome or Edge on a desktop. If MIDI is blocked when opening the file directly, serve it from localhost.</li>
       <li><b>A card shows an error:</b> that feed is unreachable or rate-limited. The others keep working. For NASA rate limits, add your own key. “HTTP 503” means NASA’s servers are briefly down: the page keeps showing the last good data and retries every 5 minutes.</li>
       <li><b>Ships card says it could not reach Digitraffic, or shows few ships:</b> the open feed covers only the Baltic Sea and Finnish waters, and some browsers or networks block it. The rest of the page keeps working.</li>
-      <li><b>Aircraft card says the limit is used up, or could not reach OpenSky:</b> the free daily allowance is small, and some browsers or networks block the feed. Keep the interval at 15 minutes or more, and avoid reloading the page repeatedly.</li>
+      <li><b>Aircraft card says the limit is used up, or that OpenSky is not reachable:</b> the page falls back to community feeds by itself and says so. If it reports that it could not reach any aircraft feed, your network or an ad blocker is probably blocking them. Keep the OpenSky interval at 15 minutes or more, and avoid reloading the page repeatedly.</li>
       <li><b>No coastlines or plate boundaries:</b> they load from the internet. Check your connection, or ignore them, since the map works without.</li>
       <li><b>Too busy:</b> raise the minimum magnitude, lengthen the loops, or narrow a module’s “Only play when” filter.</li>
     </ul>
@@ -603,7 +622,7 @@ function applyTheme() {
   for (const k in v) root.style.setProperty(k, v[k]);
   root.style.colorScheme = lum(v['--abyss']) > .4 ? 'light' : 'dark';
   TH.ink = hex2(v['--muted']).join(','); TH.text = hex2(v['--text']).join(',');
-  const m = hex2(v['--map']); TH.halo = `rgba(${m.join(',')},.9)`; root.style.setProperty('--strip', `rgba(${m.join(',')},.93)`);
+  const m = hex2(v['--map']); TH.mapRGB = m; TH.halo = `rgba(${m.join(',')},.9)`; root.style.setProperty('--strip', `rgba(${m.join(',')},.93)`);
   $('#th-sel').value = TH.name; $('#th-custom').hidden = TH.name !== 'custom';
   const c = TH.custom; $('#th-bg').value = c.bg; $('#th-panel').value = c.panel; $('#th-text').value = c.text; $('#th-accent').value = c.accent;
   const lowT = contrast(c.text, c.panel) < 4.5, lowA = contrast(c.accent, c.panel) < 3;
@@ -712,7 +731,7 @@ const MODS = [
       <div class="row ctl"><label>Update every <select id="fl-every"><option value="15">15 minutes</option><option value="20">20 minutes</option><option value="30" selected>30 minutes</option><option value="60">60 minutes</option></select></label></div>
       <div class="row ctl"><label><input type="checkbox" id="fl-replay" checked> Sweep the airspace as a loop</label></div>
       <div class="row ctl"><label>Loop length <input type="range" id="fl-loop" min="10" max="120" value="40"><output id="fl-loop-o">40 s</output></label></div>
-      <div class="src">Free anonymous OpenSky access allows about 400 credits a day and each update costs 4, so keep the interval at 15 minutes or more. For research and non-commercial use.</div>` }
+      <div class="src">Free anonymous OpenSky access allows about 400 credits a day and each update costs 4, so keep the interval at 15 minutes or more. If OpenSky is blocked in your browser, the page falls back by itself to community ADS-B feeds (adsb.lol, adsb.one, airplanes.live), which show busy airspace around major airports and update every 4 minutes. For research and non-commercial use.</div>` }
 ];
 const byId = id => MODS.find(m => m.id === id);
 const colorOf = m => getComputedStyle(document.documentElement).getPropertyValue(m.color).trim();
@@ -1135,7 +1154,10 @@ $('#oct').addEventListener('change', e => S.oct = +e.target.value);
 $('#len').addEventListener('input', e => { S.len = e.target.value / 100; $('#len-o').textContent = e.target.value + '%'; });
 
 /* ---------- map ---------- */
-const cv = $('#map'), ctx = cv.getContext('2d');
+const cv = $('#map');
+let ctx = cv.getContext('2d');
+const mainCtx = ctx;
+let DW = 900, DH = 450;
 const MAP = { dayQuakes: [], events: [], pulses: [], trail: [], iss: null, strikes: [], ships: [] };
 const CITIES = [['Reykjavík',64.15,-21.94],['London',51.51,-0.13],['New York',40.71,-74.0],['São Paulo',-23.55,-46.63],
                 ['Cape Town',-33.92,18.42],['Mumbai',19.08,72.88],['Tokyo',35.68,139.69],['Sydney',-33.87,151.21]];
@@ -1205,6 +1227,7 @@ addEventListener('keydown', e => {
   if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || $('#help').open) return;
   if (e.key === 'f' || e.key === 'F') toggleFS();
   if (e.key === 'k' || e.key === 'K') toggleKiosk();
+  if (e.key === 'g' || e.key === 'G') setView(!GL.on);
   if (e.key === 'm' || e.key === 'M') setSound(!SND.on);
   if (e.key === ' ' && document.activeElement.tagName !== 'BUTTON') { e.preventDefault(); togglePause(); }
   if (e.key === '?') $('#help').showModal();
@@ -1288,10 +1311,10 @@ function pick(mx, my) {
   if (LY.moon) { const q = moonPoint(); t(q.lon, q.lat, { kind: 'moon' }, .35); }
   return best;
 }
-cv.addEventListener('click', ev => {
-  const r = cv.getBoundingClientRect(), b = pick(ev.clientX - r.left, ev.clientY - r.top);
+const onMapClick = ev => {
+  const [mx0, my0] = clickXY(ev), b = pick(mx0, my0);
   if (!b) {
-    const W2 = cv.clientWidth, H2 = W2 / 2, mx = ev.clientX - r.left, my = ev.clientY - r.top;
+    const W2 = cv.clientWidth, H2 = W2 / 2, mx = mx0, my = my0;
     const lon = mx / W2 * 360 - 180, lat = 90 - my / H2 * 180;
     const a = LY.aurora && AU.ok ? AU.grid[clamp(Math.round(90 - lat), 0, 180) * 360 + ((Math.round(lon) + 180) % 360 + 360) % 360] : 0;
     if (a >= 3) { SEL.fn = null; return showPop(ev, 'Aurora forecast', [`${a}% chance of visible aurora here`, `${lat.toFixed(1)}°, ${lon.toFixed(1)}°`, 'NOAA OVATION model, for roughly the next 30 minutes']); }
@@ -1341,7 +1364,8 @@ cv.addEventListener('click', ev => {
     const ph = moonPhase();
     showPop(ev, moonName(ph), [`${Math.round((1 - Math.cos(2 * Math.PI * ph)) / 2 * 100)}% illuminated`, `Directly overhead at ${pos}`, `${(ph * 29.53).toFixed(1)} days into the cycle`]);
   }
-});
+};
+cv.addEventListener('click', onMapClick);
 
 let LAND = null;
 fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson').then(r => r.json()).then(g => {
@@ -1390,12 +1414,13 @@ function pulse(lon, lat, color, size, delay = 0) {
   if (MAP.pulses.length > 400) MAP.pulses.shift();
 }
 function dotAt(lon, lat, r, color, alpha = 1) {
-  const W = cv.clientWidth, H = W / 2;
+  const W = DW, H = DH;
   ctx.globalAlpha = alpha; ctx.fillStyle = color;
   ctx.beginPath(); ctx.arc(px(lon, W), py(lat, H), r, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
 }
-function draw() {
-  const W = cv.clientWidth, H = W / 2, now = performance.now(), K = Math.max(1, W / 900);
+function drawFlat(W, H) {
+  DW = W; DH = H;
+  const now = performance.now(), K = Math.max(1, W / 900);
   ctx.clearRect(0, 0, W, H);
   if (LY.grid) {
     ctx.strokeStyle = ink(.14); ctx.lineWidth = 1;
@@ -1542,8 +1567,111 @@ function draw() {
     ctx.beginPath(); ctx.arc(x, y, 2.6 * K, 0, 7); ctx.fill();
   }
   ctx.globalAlpha = 1;
+}
+
+/* ---------- globe view (WebGL): the flat map is drawn into a texture, then wrapped around a sphere ---------- */
+const glc = $('#globe');
+const GL = { on: false, ok: true, real: false, lon: 0, lat: 20, s: 400, speed: 1.92, rev: false, drag: null, moved: false, last: 0, texT: 0, gl: null, FW: 2048, FH: 1024 };
+const speedOf = s => 30 * Math.pow(s / 1000, 3), REAL = 360 / 86164;
+try { const sv = JSON.parse(localStorage.getItem('earthmidi-view')); if (sv) { GL.on = !!sv.globe; GL.s = clamp(+sv.s || 0, 0, 1000); GL.rev = !!sv.rev; GL.lat = clamp(+sv.lat || 20, -85, 85); GL.real = !!sv.real; } } catch (e) {}
+GL.speed = GL.real ? REAL : speedOf(GL.s);
+const saveView = () => { try { localStorage.setItem('earthmidi-view', JSON.stringify({ globe: GL.on, s: GL.s, rev: GL.rev, lat: GL.lat, real: GL.real })); } catch (e) {} };
+const GL_VS = 'attribute vec2 aPos; void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }';
+const GL_FS = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+uniform sampler2D uTex; uniform vec2 uRes; uniform float uR; uniform vec2 uC; uniform vec3 uOcean; uniform vec3 uBg;
+const float PI = 3.14159265358979;
+void main(){
+  vec2 p = (gl_FragCoord.xy - 0.5 * uRes) / uR;
+  float r = length(p);
+  vec3 outside = mix(uBg, vec3(0.45, 0.7, 1.0), exp(-(r - 1.0) * 14.0) * 0.3);
+  if (r >= 1.0) { gl_FragColor = vec4(outside, 1.0); return; }
+  float z = sqrt(1.0 - r * r);
+  float phi = asin(clamp(z * sin(uC.y) + p.y * cos(uC.y), -1.0, 1.0));
+  float lam = uC.x + atan(p.x, z * cos(uC.y) - p.y * sin(uC.y));
+  vec4 t = texture2D(uTex, vec2(fract((lam + PI) / (2.0 * PI)), 0.5 - phi / PI));
+  vec3 col = mix(uOcean, t.rgb, t.a);
+  col *= 0.5 + 0.5 * pow(z, 0.6);
+  col += vec3(0.35, 0.6, 1.0) * pow(1.0 - z, 4.0) * 0.35;
+  gl_FragColor = vec4(mix(outside, col, smoothstep(1.0, 0.994, r)), 1.0);
+}`;
+function initGL() {
+  if (GL.gl) return true;
+  let gl = null; try { gl = glc.getContext('webgl', { antialias: false }) || glc.getContext('experimental-webgl'); } catch (e) {}
+  if (!gl) return false;
+  try {
+    const sh = (t, src) => { const x = gl.createShader(t); gl.shaderSource(x, src); gl.compileShader(x); if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(x)); return x; };
+    const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, GL_VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, GL_FS)); gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    gl.useProgram(p);
+    const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    const a = gl.getAttribLocation(p, 'aPos'); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
+    const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    GL.u = {}; for (const n of ['uTex', 'uRes', 'uR', 'uC', 'uOcean', 'uBg']) GL.u[n] = gl.getUniformLocation(p, n);
+    GL.off = document.createElement('canvas'); GL.off.width = GL.FW; GL.off.height = GL.FH; GL.offctx = GL.off.getContext('2d');
+    GL.tex = tex; GL.gl = gl; return true;
+  } catch (e) { console.error('Globe unavailable:', e); return false; }
+}
+function globeFrame() {
+  const gl = GL.gl, now = performance.now(), dt = Math.min(.1, (now - (GL.last || now)) / 1000); GL.last = now;
+  if (!GL.drag) GL.lon = ((GL.lon - (GL.rev ? -1 : 1) * GL.speed * dt + 540) % 360 + 360) % 360 - 180;
+  if (now - GL.texT > 66) {
+    const saved = ctx; ctx = GL.offctx; try { drawFlat(GL.FW, GL.FH); } finally { ctx = saved; }
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, GL.tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, GL.off); GL.texT = now;
+  }
+  const dpr = window.devicePixelRatio || 1, w = glc.clientWidth, h = glc.clientHeight, bw = Math.max(1, Math.round(w * dpr)), bh = Math.max(1, Math.round(h * dpr));
+  if (glc.width !== bw || glc.height !== bh) { glc.width = bw; glc.height = bh; }
+  gl.viewport(0, 0, bw, bh);
+  const m = (TH.mapRGB || [10, 17, 32]).map(x => x / 255);
+  gl.uniform1i(GL.u.uTex, 0); gl.uniform2f(GL.u.uRes, bw, bh); gl.uniform1f(GL.u.uR, .46 * Math.min(bw, bh));
+  gl.uniform2f(GL.u.uC, GL.lon * Math.PI / 180, GL.lat * Math.PI / 180); gl.uniform3f(GL.u.uOcean, m[0], m[1], m[2]); gl.uniform3f(GL.u.uBg, m[0] * .6, m[1] * .6, m[2] * .6);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+function draw() {
+  try {
+    if (GL.on && GL.ok && GL.gl) globeFrame(); else { DW = cv.clientWidth; DH = DW / 2; drawFlat(DW, DH); }
+  } catch (e) { console.error(e); }
   requestAnimationFrame(draw);
 }
+function clickXY(ev) {
+  if (!GL.on) { const r = cv.getBoundingClientRect(); return [ev.clientX - r.left, ev.clientY - r.top]; }
+  const r = glc.getBoundingClientRect(), w = r.width, h = r.height, R = .46 * Math.min(w, h), x = (ev.clientX - r.left - w / 2) / R, y = (h / 2 - (ev.clientY - r.top)) / R, rr = x * x + y * y;
+  if (rr > 1) return [-1e6, -1e6];
+  const z = Math.sqrt(1 - rr), c = GL.lat * Math.PI / 180, phi = Math.asin(clamp(z * Math.sin(c) + y * Math.cos(c), -1, 1)), lam = GL.lon * Math.PI / 180 + Math.atan2(x, z * Math.cos(c) - y * Math.sin(c));
+  const lon = ((lam * 180 / Math.PI + 540) % 360 + 360) % 360 - 180, lat = phi * 180 / Math.PI, cw = cv.clientWidth;
+  return [(lon + 180) / 360 * cw, (90 - lat) / 180 * (cw / 2)];
+}
+const spinText = () => {
+  const sp = GL.speed, t = sp > 0 ? 360 / sp : 0;
+  $('#gl-speed-o').textContent = sp <= 0 ? 'stopped' : `${sp < .1 ? sp.toFixed(4) : sp.toFixed(1)}°/s, a turn in ${t < 90 ? Math.round(t) + ' s' : t < 5400 ? Math.round(t / 60) + ' min' : (t / 3600).toFixed(1) + ' h'}${GL.real ? ' (Earth’s own speed)' : ''}`;
+};
+function setView(globe) {
+  if (globe && !initGL()) { GL.ok = false; globe = false; $('#gl-note').textContent = 'The globe needs WebGL, which this browser or device does not offer.'; } else if (globe) $('#gl-note').textContent = 'Drag to turn the globe. Double-click to level it.';
+  GL.on = globe; fsEl.classList.toggle('globe', globe);
+  $('#view-mode').value = globe ? 'globe' : 'flat'; $('#btn-globe').textContent = globe ? 'Flat map' : 'Globe'; saveView();
+}
+$('#btn-globe').addEventListener('click', () => setView(!GL.on));
+$('#view-mode').addEventListener('change', e => setView(e.target.value === 'globe'));
+$('#gl-speed').addEventListener('input', e => { GL.s = +e.target.value; GL.real = false; GL.speed = speedOf(GL.s); spinText(); saveView(); });
+$('#gl-real').addEventListener('click', () => { GL.real = true; GL.speed = REAL; $('#gl-speed').value = 52; spinText(); saveView(); });
+$('#gl-rev').addEventListener('change', e => { GL.rev = e.target.checked; saveView(); });
+glc.addEventListener('pointerdown', e => { GL.drag = { x: e.clientX, y: e.clientY, lon: GL.lon, lat: GL.lat }; GL.moved = false; try { glc.setPointerCapture(e.pointerId); } catch (x) {} });
+glc.addEventListener('pointermove', e => {
+  const d = GL.drag; if (!d) return;
+  const dx = e.clientX - d.x, dy = e.clientY - d.y, k = 57.3 / (.46 * Math.min(glc.clientWidth, glc.clientHeight));
+  if (Math.abs(dx) + Math.abs(dy) > 4) GL.moved = true;
+  GL.lon = ((d.lon - dx * k + 540) % 360 + 360) % 360 - 180; GL.lat = clamp(d.lat + dy * k, -85, 85);
+});
+const glEnd = () => { GL.drag = null; saveView(); };
+glc.addEventListener('pointerup', glEnd); glc.addEventListener('pointercancel', glEnd);
+glc.addEventListener('click', e => { if (GL.moved) { GL.moved = false; return; } onMapClick(e); });
+glc.addEventListener('dblclick', () => { GL.lat = 20; saveView(); });
+$('#gl-speed').value = GL.real ? 52 : GL.s; $('#gl-rev').checked = GL.rev; spinText(); setView(GL.on);
 requestAnimationFrame(draw);
 
 /* ---------- data helpers ---------- */
@@ -2499,7 +2627,7 @@ $('#seq-fill').addEventListener('change', e => { if (e.target.value) { seqFill(e
 seqApply(); setInterval(seqTick, 250);
 
 /* ---------- aircraft (OpenSky Network) ---------- */
-const FL = { list: [], t: 0, timer: null, loop: null, running: false, left: null, next: 0 };
+const FL = { list: [], t: 0, timer: null, loop: null, running: false, left: null, next: 0, src: 0, polls: 0, via: 'OpenSky Network' };
 const FL_BOX = { world: null, eu: [34, -12, 60, 35], na: [15, -130, 55, -60], ap: [-10, 60, 50, 150] };
 function flPos(p, t) { const dt = Math.min(t - p.t, 25 * 60000); return [p.lat + p.dlat * dt, (((p.lon + p.dlon * dt + 540) % 360) + 360) % 360 - 180]; }
 function flightsIngest(states, tms) {
@@ -2524,22 +2652,59 @@ function flightsReadout() {
   const st = FL.stats, left = FL.next ? Math.max(0, Math.round((FL.next - Date.now()) / 60000)) : 0;
   setRO('flights', `${st.air.toLocaleString()} aircraft in the air, ${st.ground.toLocaleString()} on the ground\nAverage ${Math.round(st.alt).toLocaleString()} m high, ${Math.round(st.spd * 3.6)} km/h\nNext update in about ${left} min`);
 }
+/* community ADS-B feeds that answer "everything within 250 nm of this point": used when OpenSky cannot be reached */
+const FL_BASES = [['adsb.lol', 'https://api.adsb.lol/v2/point/'], ['adsb.one', 'https://api.adsb.one/v2/point/'], ['airplanes.live', 'https://api.airplanes.live/v2/point/']];
+const FL_HUBS = { eu: [[51.5, -.1], [50, 8.5], [45, 10], [40.4, -3.7], [41, 29], [55.7, 37.6]],
+  na: [[40.7, -74], [41.9, -87.6], [33.6, -84.4], [32.9, -97], [34, -118], [39.8, -104.7], [47.5, -122.3], [25.8, -80.3]],
+  ap: [[35.7, 139.7], [40, 116.4], [31, 121.5], [22.3, 114.2], [1.4, 103.9], [28.6, 77.1], [25.2, 55.4], [13.7, 100.7], [-33.9, 151.2], [37.5, 127]],
+  other: [[-23.5, -46.6], [-26.1, 28.2], [30, 31.4], [19.4, -99.1], [6.5, 3.4], [-34.6, -58.4], [4.7, -74.1], [-1.3, 36.8]] };
+const flGap = () => (typeof window.__flgap === 'number' ? window.__flgap : 1100);
+async function hubStates(base) {
+  const reg = $('#fl-region').value, hubs = reg === 'world' ? [...FL_HUBS.eu, ...FL_HUBS.na, ...FL_HUBS.ap, ...FL_HUBS.other] : FL_HUBS[reg];
+  const out = new Map(); let ok = 0, bad = 0, tms = Date.now();
+  for (const h of hubs) {
+    try {
+      const r = await fetch(`${base}${h[0]}/${h[1]}/250`, { cache: 'no-store', signal: AbortSignal.timeout ? AbortSignal.timeout(15000) : undefined });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const d = await r.json(); ok++; tms = d.now || tms;
+      for (const a of d.ac || []) {
+        if (a.lat == null || a.lon == null || out.has(a.hex)) continue;
+        const gr = a.alt_baro === 'ground', ft = typeof a.alt_baro === 'number' ? a.alt_baro : 0, gf = typeof a.alt_geom === 'number' ? a.alt_geom : ft;
+        out.set(a.hex, [a.hex, a.flight || a.r || '', ((a.r || '') + ' ' + (a.t || '')).trim(), (tms - (a.seen_pos || 0) * 1000) / 1000, null, a.lon, a.lat, ft * .3048, gr, (a.gs || 0) * .514444, a.track || 0, (a.baro_rate || 0) * .00508, null, gf * .3048]);
+      }
+    } catch (e) { if (!ok && ++bad >= 2) throw new Error('Failed to fetch'); }
+    await new Promise(r => setTimeout(r, flGap()));
+  }
+  if (!ok) throw new Error('Failed to fetch');
+  return [[...out.values()], tms, hubs.length];
+}
 async function flightsPoll() {
   clearTimeout(FL.timer);
-  const every = +$('#fl-every').value * 60000; let next = every;
-  try {
-    const box = FL_BOX[$('#fl-region').value], q = box ? `?lamin=${box[0]}&lomin=${box[1]}&lamax=${box[2]}&lomax=${box[3]}` : '';
-    const r = await fetch('https://opensky-network.org/api/states/all' + q, { cache: 'no-store', signal: AbortSignal.timeout ? AbortSignal.timeout(30000) : undefined });
-    FL.left = r.headers.get('X-Rate-Limit-Remaining');
-    if (r.status === 429) { next = Math.min(3600e3, Math.max(60e3, (+r.headers.get('X-Rate-Limit-Retry-After-Seconds') || 1800) * 1000)); throw new Error('HTTP 429'); }
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const d = await r.json(), tms = (d.time || Date.now() / 1000) * 1000, states = d.states || [];
-    flightsIngest(states, tms);
-    try { localStorage.setItem('earthmidi-flights', JSON.stringify({ t: Date.now(), tms, region: $('#fl-region').value, rows: states.map(s => [null, s[1], s[2], s[3] || s[4], null, s[5], s[6], s[13] ?? s[7], s[8], s[9], s[10], s[11]]) })); } catch (e) {}
-    setStatus('flights', `Live. About ${Math.round(4 * 1440 * 60000 / every)} of the 400 free daily credits at this rate${FL.left != null ? ', ' + FL.left + ' left today' : ''}.`);
-  } catch (e) {
-    next = e.message === 'HTTP 429' ? next : Math.min(next, 5 * 60000);
-    setStatus('flights', (e.message === 'HTTP 429' ? 'OpenSky’s free daily limit is used up.' : 'Could not reach OpenSky: ' + e.message + '.') + ` Retrying in ${Math.round(next / 60000)} minutes.`, true);
+  const every = +$('#fl-every').value * 60000; let next = every, done = false, limited = false;
+  const order = FL.polls++ % 6 === 0 ? [0, 1, 2, 3] : [FL.src, ...[0, 1, 2, 3].filter(i => i !== FL.src)];
+  for (const i of order) {
+    try {
+      if (i === 0) {
+        const box = FL_BOX[$('#fl-region').value], q = box ? `?lamin=${box[0]}&lomin=${box[1]}&lamax=${box[2]}&lomax=${box[3]}` : '';
+        const r = await fetch('https://opensky-network.org/api/states/all' + q, { cache: 'no-store', signal: AbortSignal.timeout ? AbortSignal.timeout(30000) : undefined });
+        FL.left = r.headers.get('X-Rate-Limit-Remaining');
+        if (r.status === 429) { next = Math.min(3600e3, Math.max(60e3, (+r.headers.get('X-Rate-Limit-Retry-After-Seconds') || 1800) * 1000)); limited = true; throw new Error('HTTP 429'); }
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const d = await r.json(), tms = (d.time || Date.now() / 1000) * 1000, states = d.states || [];
+        flightsIngest(states, tms); FL.src = 0; FL.via = 'OpenSky Network'; done = true;
+        try { localStorage.setItem('earthmidi-flights', JSON.stringify({ t: Date.now(), tms, region: $('#fl-region').value, rows: states.map(s => [null, s[1], s[2], s[3] || s[4], null, s[5], s[6], s[13] ?? s[7], s[8], s[9], s[10], s[11]]) })); } catch (e) {}
+        setStatus('flights', `Live from OpenSky. About ${Math.round(4 * 1440 * 60000 / every)} of the 400 free daily credits at this rate${FL.left != null ? ', ' + FL.left + ' left today' : ''}.`);
+      } else {
+        const [rows, tms, hubs] = await hubStates(FL_BASES[i - 1][1]);
+        flightsIngest(rows, tms); FL.src = i; FL.via = FL_BASES[i - 1][0]; done = true; next = limited ? Math.min(next, 4 * 60000) : 4 * 60000;
+        setStatus('flights', `${limited ? 'OpenSky’s free daily limit is used up' : 'OpenSky is not reachable from this browser'}, so this shows busy airspace around ${hubs} major airport areas from ${FL_BASES[i - 1][0]}. Updates every 4 minutes.`);
+      }
+      break;
+    } catch (e) { if (i === 0 && !limited && FL.polls > 1 && FL.src !== 0) continue; }
+  }
+  if (!done) {
+    next = Math.min(next, 5 * 60000);
+    setStatus('flights', `Could not reach any aircraft feed (OpenSky, adsb.lol, adsb.one or airplanes.live). Your browser, network or an ad blocker may be blocking them. Retrying in ${Math.round(next / 60000)} minutes.`, true);
   }
   FL.next = Date.now() + next; FL.timer = setTimeout(flightsPoll, next);
 }
