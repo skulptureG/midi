@@ -187,6 +187,11 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
 #globe:active{cursor:grabbing}
 .mapwrap.globe #globe{display:block}
 .mapwrap.globe #map{visibility:hidden}
+.topbtns{display:flex;flex-wrap:wrap;gap:8px}
+.topbtns button{box-sizing:border-box;flex:0 0 120px;width:120px;height:40px;padding:0 8px;font:500 13px var(--mono);border-radius:8px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}
+.topbtns .pp{font-weight:600}
+.topbtns #btn-snd[aria-pressed=true]{border-color:var(--accent);color:var(--accent)}
+@media(max-width:520px){.topbtns{width:100%}.topbtns button{flex:1 1 calc(50% - 4px);width:auto}}
 </style>
 </head>
 <body>
@@ -194,10 +199,12 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
   <header>
     <h1>Earth <span>to</span> MIDI</h1>
     <p class="abs"><span>Earth and space data for live events.</span><span>Real-time quakes, weather, the ISS, solar activity and asteroids, turned into MIDI notes and controllers for your DAW, lights or show control.</span></p>
+    <div class="topbtns">
     <button id="btn-kiosk" title="Clean full-screen display for installations (K)">Kiosk</button>
-    <button id="btn-snd" aria-pressed="false">🔈 Sound off</button>
-    <button id="btn-pp" class="pp" aria-pressed="false">❚❚ Pause all</button>
-    <button id="btn-help" aria-haspopup="dialog">Help</button>
+      <button id="btn-snd" aria-pressed="false">Sound off</button>
+      <button id="btn-pp" class="pp" aria-pressed="false">Pause all</button>
+      <button id="btn-help" aria-haspopup="dialog">Help</button>
+    </div>
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Data groups">
@@ -235,6 +242,7 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
           <label><input type="checkbox" data-l="lightning"> Lightning</label>
           <span class="src">Transport</span>
           <label><input type="checkbox" data-l="lanes"> Shipping lanes and straits</label>
+          <label><input type="checkbox" data-l="sailing"> Ships sailing the lanes</label>
           <label><input type="checkbox" data-l="ships"> Live ships</label>
           <label><input type="checkbox" data-l="flights"> Aircraft</label>
           <span class="src">Live activity</span>
@@ -403,7 +411,7 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
 
     <h3>Top bar and side panel</h3>
     <ul>
-      <li><b>Top bar:</b> <b>Kiosk</b> starts the clean public display (K), <b>Sound</b> turns the built-in sound on or off, <b>Pause all</b> silences everything and resumes it, and <b>Help</b> opens this window.</li>
+      <li><b>Top bar:</b> four equal buttons. <b>Kiosk</b> starts the clean public display (K), <b>Sound</b> turns the built-in sound on or off, <b>Pause all</b> silences everything and resumes it, and <b>Help</b> opens this window.</li>
       <li><b>Step sequencer:</b> the optional panel under the map for planning which sources play, and when.</li>
       <li><b>Theme:</b> pick a look or choose your own colours.</li>
       <li><b>MIDI output:</b> connect, choose the port, send a test chord, or Panic to clear stuck notes. The built-in sound controls (sound, volume, reverb) are here too.</li>
@@ -491,7 +499,7 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
       <li><b>Aurora oval:</b> the green to pink glow around each pole is NOAA’s live aurora forecast: the brighter and pinker, the higher the chance of visible aurora. The oval grows toward the equator in magnetic storms. Click any glowing area for the probability there. It refreshes every 5 minutes and needs an internet connection.</li>
       <li><b>Tectonic plate boundaries:</b> the orange lines mark where the Earth’s plates meet. Quakes and volcanoes cluster along them, so watch the quake dots trace them out. The lines come from the PB2002 plate model.</li>
       <li><b>Labels:</b> switch on City and strait labels in Layers to name the major cities and, with Shipping lanes on, the straits. Labels that would overlap are skipped, so full screen shows the most.</li>
-      <li><b>Layers</b> shows or hides each part of the map, in five groups. View: flat map or globe, with spin speed. Map: coastlines, grid, day, night and twilight, tectonic plate boundaries, city and strait labels (coastlines and plate boundaries need an internet connection). Sky: sun, moon, aurora oval, ISS and its ground track. Earth data: quake history, natural events, weather cities, lightning. Transport: shipping lanes and straits, live ships, aircraft. Live activity: note pulses and markers, births and deaths, sunrise and sunset.</li>
+      <li><b>Layers</b> shows or hides each part of the map, in five groups. View: flat map or globe, with spin speed. Map: coastlines, grid, day, night and twilight, tectonic plate boundaries, city and strait labels (coastlines and plate boundaries need an internet connection). Sky: sun, moon, aurora oval, ISS and its ground track. Earth data: quake history, natural events, weather cities, lightning. Transport: shipping lanes and straits, ships sailing the lanes, live ships, aircraft. Live activity: note pulses and markers, births and deaths, sunrise and sunset.</li>
       <li><b>Pulses and markers:</b> every note that plays on the map draws a ring and leaves a dot that fades over 8 seconds, so you can click it. Switch births and deaths or sunrise and sunset off separately if the map gets busy.</li>
       <li><b>Full screen</b> (button or <kbd>F</kbd>) gives a clean display with a live monitor and log. The cursor and buttons hide after a few seconds without movement.</li>
     </ul>
@@ -501,6 +509,7 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
     <p><b>Aircraft</b> shows live flights from the OpenSky Network, a community network of ADS-B receivers that picks up the position, height, speed and heading each aircraft broadcasts. Choose the whole world, Europe, North America or Asia and the Pacific. Planes appear as small dots, brighter the higher they fly, and drift along their heading between updates so the map keeps moving. Click one for its callsign, country, height, speed and heading. The airspace is played as a looping west to east sweep, with height setting pitch and speed setting loudness and length, and the controllers follow the numbers in the air, average height and speed, and how many are climbing or descending.</p>
     <p>OpenSky’s free anonymous access allows about 400 credits a day and each update costs 4, so the page updates every 15 to 60 minutes (30 by default) and reuses its last update when you reload, to save credits. If the limit is reached the card says so and tries again later. OpenSky data is for research and non-commercial use.</p>
     <p>If OpenSky cannot be reached from your browser (some networks and browsers block it), the page switches by itself to community ADS-B feeds: adsb.lol, then adsb.one, then airplanes.live. They only answer for a circle around a point, so the page asks about 6 to 32 busy airport areas, depending on the Area you chose, and shows the aircraft it finds there. That is a rich sample of the busiest airspace, not every plane, and it refreshes every 4 minutes. The card says which feed is in use. It tries OpenSky again from time to time.</p>
+    <p><b>Ships sailing the lanes</b> are a modelled fleet of about 700 vessels that sail slowly along the dashed lanes, so the world’s sea routes are alive on the map and the globe. They are not real ships: they follow typical routes at typical speeds (about 20 to 40 km/h), and the <b>Ship sailing speed</b> menu on the Shipping lanes card sets how much faster than real life they are shown (3000 times faster by default, which makes an Atlantic crossing take a few minutes; choose 10000 times for a livelier sea, or 300 and Real time for a calmer one). Click one to see its route and speed. Turn them off with <b>Ships sailing the lanes</b> in Layers. The real ships on the Ships (live) card stay at their true speed, which is too slow to see on a world map, and the open feed only covers the Baltic.</p>
     <p><b>Shipping lanes (modelled)</b> is a model, not a live feed. The dashed lines are approximate major routes, and the diamonds are 12 busy straits and canals, such as Malacca, Suez, Panama, Hormuz and the English Channel. Random ships pass each strait at its typical daily rate (rounded, and real figures vary from year to year), sped up by the Speed setting. Each transit pulses on the map and can play a note; bigger ships play longer notes. Use the Layers menu to hide the lanes or the ships.</p>
 
     <h3>Aurora oval</h3>
@@ -718,7 +727,8 @@ const MODS = [
     cc: 'A model of global shipping: random ships passing 12 major straits and canals at their typical daily rates, sped up by the setting below. Larger ships play longer notes. CC95 pulse on every transit, CC96 transits per second, CC97 how busy the latest strait is.',
     extra: `
       <div class="row ctl"><label>Speed <select id="ln-warp"><option value="1">Real time</option><option value="60" selected>60 times faster</option><option value="300">300 times faster</option><option value="1000">1000 times faster</option></select></label></div>
-      <div class="row ctl"><label>Play one note per <select id="ln-thin"><option value="1">transit</option><option value="2" selected>2 transits</option><option value="5">5 transits</option><option value="10">10 transits</option></select></label></div>` },
+      <div class="row ctl"><label>Play one note per <select id="ln-thin"><option value="1">transit</option><option value="2" selected>2 transits</option><option value="5">5 transits</option><option value="10">10 transits</option></select></label></div>
+      <div class="row ctl"><label>Ship sailing speed <select id="ln-sail"><option value="1">Real time</option><option value="300">300 times faster</option><option value="1000">1000 times faster</option><option value="3000" selected>3000 times faster</option><option value="10000">10000 times faster</option></select></label></div>` },
   { id: 'aurora', name: 'Aurora oval', src: 'NOAA OVATION', color: '--aurora', ch: 10, on: true,
     cc: 'The live aurora forecast, updated every 5 minutes. The glowing oval on the map shows where aurora is likely. The oval is played as a ring: the strongest points around both poles sweep past as notes, higher nearer the pole and louder where aurora is more likely. CC29 peak probability, CC49 how much of the Earth has aurora, CC58 and CC59 how far the northern and southern ovals reach toward the equator (higher means a bigger storm).',
     extra: `
@@ -935,7 +945,7 @@ function setSound(on) {
   SND.on = on;
   if (on) { sndInit(); if (SND.ctx) SND.ctx.resume(); }
   $('#snd-on').checked = on;
-  const b = $('#btn-snd'); b.textContent = on ? '🔊 Sound on' : '🔈 Sound off'; b.setAttribute('aria-pressed', on);
+  const b = $('#btn-snd'); b.textContent = on ? 'Sound on' : 'Sound off'; b.setAttribute('aria-pressed', on);
 }
 function setVol(v) {
   SND.vol = v; $('#snd-vol').value = v; $('#snd-vol-o').textContent = v + '%';
@@ -1133,7 +1143,7 @@ function setPaused(p) {
   if (p === S.paused) return;
   S.paused = p; S.gen++;
   document.body.classList.toggle('paused', p);
-  const b = $('#btn-pp'); b.textContent = p ? '▶ Resume' : '❚❚ Pause all'; b.setAttribute('aria-pressed', p);
+  const b = $('#btn-pp'); b.textContent = p ? 'Resume' : 'Pause all'; b.setAttribute('aria-pressed', p);
   if (p) { panic(); cvGatesOff(); setTimeout(() => { if (S.paused) panic(); }, 450); }
   else { resendAll(); MODS.forEach(m => onEnable(m.id)); }
   sndDuck(p);
@@ -1237,7 +1247,7 @@ addEventListener('keydown', e => {
 });
 let idleT; fsEl.addEventListener('mousemove', () => { fsEl.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => fsEl.classList.add('idle'), 3000); });
 
-const LY = { land: 1, grid: 1, term: 1, quakes: 1, events: 1, cities: 1, iss: 1, track: 1, moon: 1, lightning: 1, people: 1, clock: 1, lanes: 1, ships: 1, flights: 1, plates: 1, aurora: 1, labels: 0, sun: 1, pulses: 1 };
+const LY = { land: 1, grid: 1, term: 1, quakes: 1, events: 1, cities: 1, iss: 1, track: 1, moon: 1, lightning: 1, people: 1, clock: 1, lanes: 1, sailing: 1, ships: 1, flights: 1, plates: 1, aurora: 1, labels: 0, sun: 1, pulses: 1 };
 try { Object.assign(LY, JSON.parse(localStorage.getItem('earthmidi-layers'))); } catch (e) {}
 document.querySelectorAll('[data-l]').forEach(el => {
   el.checked = !!LY[el.dataset.l];
@@ -1306,6 +1316,7 @@ function pick(mx, my) {
   if (LY.ships) for (const v of MAP.ships) t(v.lon, v.lat, { kind: 'ship', v });
   if (LY.flights) { const tt = Date.now(); for (const p of FL.list) { if (p.g) continue; const q = flPos(p, tt); t(q[1], q[0], { kind: 'plane', p }, .8); } }
   if (LY.lanes) for (const c of CHOKE) t(c[2], c[1], { kind: 'strait', c }, .5);
+  if (LY.sailing) for (const sh of SAIL.ships) if (sh.la != null) t(sh.lo, sh.la, { kind: 'sailor', sh }, .9);
   if (LY.pulses) for (const p of MAP.pulses) if (p.info && performance.now() >= p.t0 && pulseOn(p)) t(p.lon, p.lat, { kind: 'pulse', p }, .6);
   if (LY.sun) { const q = sunPoint(); t(q.lon, q.lat, { kind: 'sun' }, .35); }
   if (LY.moon) { const q = moonPoint(); t(q.lon, q.lat, { kind: 'moon' }, .35); }
@@ -1350,6 +1361,9 @@ const onMapClick = ev => {
   } else if (b.kind === 'ship') {
     const v = b.v;
     showPop(ev, 'Ship ' + v.mmsi, [`${v.sog.toFixed(1)} knots, heading ${v.cog < 360 ? Math.round(v.cog) + '°' : 'unknown'}`, NAVSTAT[v.nav] || 'Status unknown', pos, 'Live AIS from Digitraffic (Finnish coverage)']);
+  } else if (b.kind === 'sailor') {
+    const sh = b.sh, w = +$('#ln-sail').value || 1;
+    showPop(ev, 'Ship on the ' + LANE_NAMES[sh.lane], [`About ${Math.round(sh.v)} km/h (${Math.round(sh.v / 1.852)} knots)`, pos, w > 1 ? `Shown ${w} times faster than real life` : 'Shown in real time', 'A modelled ship, not a real vessel. Real ships are on the Ships (live) card.']);
   } else if (b.kind === 'strait') {
     const c = b.c;
     showPop(ev, c[0], [c[4], `About ${c[3]} ships a day, typically`, pos, 'A modelled rate, not a live count.']);
@@ -1466,6 +1480,17 @@ function drawFlat(W, H) {
     }
     ctx.setLineDash([]); ctx.globalAlpha = .9; ctx.fillStyle = lc;
     for (const c of CHOKE) { const x = px(c[2], W), y = py(c[1], H), r = 3.4 * K; ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath(); ctx.fill(); }
+    ctx.globalAlpha = 1;
+  }
+  if (LY.sailing && SAIL.ships.length) {
+    const nowMs = Date.now(), dh = SAIL.last ? Math.min(10000, nowMs - SAIL.last) / 3.6e6 * (+$('#ln-sail').value || 1) : 0; SAIL.last = nowMs;
+    ctx.fillStyle = colorOf(byId('lanes')); ctx.globalAlpha = .9;
+    const sz = 1.6 * K;
+    for (const sh of SAIL.ships) {
+      const g = SAIL.geo[sh.lane]; sh.d = (((sh.d + sh.dir * sh.v * dh) % g.len) + g.len) % g.len;
+      const p = sailAt(g, sh.d); sh.la = p[0]; sh.lo = p[1];
+      ctx.fillRect(px(p[1], W) - sz / 2, py(p[0], H) - sz / 2, sz * (sh.big ? 1.5 : 1), sz * (sh.big ? 1.5 : 1));
+    }
     ctx.globalAlpha = 1;
   }
   if (LY.quakes) for (const q of MAP.dayQuakes) dotAt(q.lon, q.lat, (0.8 + (q.mag || 0) * 0.45) * K, qc, 0.35);
@@ -2406,6 +2431,27 @@ const LANES = [
   [[-24, -46], [-5, -30], [20, -25], [45, -10]],
   [[29, -94.5], [25, -85], [25, -80], [32, -76], [40.5, -73.5]]];
 
+const LANE_NAMES = ['Asia to Europe route (via Suez)', 'route around the Cape of Good Hope', 'Pacific crossing', 'Atlantic crossing', 'Panama to the US east coast', 'Panama to Europe route', 'Persian Gulf to Asia route',
+  'Asian coastal route', 'North Sea and Baltic route', 'Mediterranean and Black Sea route', 'South America to Europe route', 'Gulf of Mexico to the US east coast'];
+const SAIL = { geo: [], ships: [], last: 0 };
+function sailBuild() {
+  const R = Math.PI / 180, hav = (a, b) => { const x = Math.sin((b[0] - a[0]) * R / 2) ** 2 + Math.cos(a[0] * R) * Math.cos(b[0] * R) * Math.sin((b[1] - a[1]) * R / 2) ** 2; return 12742 * Math.asin(Math.sqrt(x)); };
+  SAIL.geo = LANES.map(ln => {
+    const pts = [[ln[0][0], ln[0][1]]];
+    for (let i = 1; i < ln.length; i++) { let lo = ln[i][1]; const pv = pts[i - 1][1]; while (lo - pv > 180) lo -= 360; while (lo - pv < -180) lo += 360; pts.push([ln[i][0], lo]); }
+    const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + hav(pts[i - 1], pts[i]));
+    return { pts, cum, len: cum[cum.length - 1] };
+  });
+  const wt = [1.6, .6, 1.2, 1, .9, .5, 1, 1.3, 1, .7, .5, .6], tot = SAIL.geo.reduce((a, g, i) => a + g.len * wt[i], 0);
+  SAIL.ships = [];
+  SAIL.geo.forEach((g, li) => { const n = Math.round(700 * g.len * wt[li] / tot); for (let k = 0; k < n; k++) SAIL.ships.push({ lane: li, d: Math.random() * g.len, dir: Math.random() < .5 ? 1 : -1, v: 20 + Math.random() * 20, big: Math.random() < .25, la: null, lo: null }); });
+}
+function sailAt(g, d) {
+  let i = 1; while (i < g.cum.length - 1 && g.cum[i] < d) i++;
+  const f = (d - g.cum[i - 1]) / Math.max(1e-6, g.cum[i] - g.cum[i - 1]), a = g.pts[i - 1], b = g.pts[i];
+  return [a[0] + (b[0] - a[0]) * f, (((a[1] + (b[1] - a[1]) * f + 540) % 360) + 360) % 360 - 180];
+}
+sailBuild();
 const SH = { list: [], loop: null, running: false };
 async function shipsPoll() {
   try {
