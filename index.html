@@ -11,7 +11,7 @@
 :root{
   --accent:#8ee8ff; --map:#0a1120; --abyss:#0c1424; --panel:#131e33; --panel2:#182640; --line:#26364f;
   --text:#dbe6f5; --muted:#8397b3;
-  --quake:#ff7a59; --iss:#8ee8ff; --space:#b99bff; --events:#ffd166; --weather:#6ee7b7; --neo:#ff8fcf; --donki:#c8f26b; --emsc:#ffa94d; --xray:#ff5d8f; --scales:#5ec8ff; --lightning:#fff27a; --clock:#ffd6a5; --motion:#a5b4fc; --ships:#4fb3ff; --lanes:#9bb7ff; --aurora:#5cf2a0; --planes:#e8f0ff; --births:#ffe08a; --deaths:#9fb0cf;
+  --quake:#ff7a59; --iss:#8ee8ff; --space:#b99bff; --events:#ffd166; --weather:#6ee7b7; --neo:#ff8fcf; --donki:#c8f26b; --emsc:#ffa94d; --xray:#ff5d8f; --scales:#5ec8ff; --lightning:#fff27a; --clock:#ffd6a5; --motion:#a5b4fc; --ships:#4fb3ff; --lanes:#9bb7ff; --aurora:#5cf2a0; --planes:#e8f0ff; --ocean:#4de1d0; --births:#ffe08a; --deaths:#9fb0cf;
   --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
 }
@@ -170,7 +170,7 @@ button,summary,.chip,.sq-cell,.sq-lab,.sq-h{touch-action:manipulation;-webkit-ta
 #seqpanel{position:relative;z-index:2}
 #btn-kx{display:none}
 .mapwrap.kiosk #btn-kx{display:inline-block}
-.mapwrap.kiosk .layers,.mapwrap.kiosk #btn-fs{display:none}
+.mapwrap.kiosk #btn-layers,.mapwrap.kiosk .drawer,.mapwrap.kiosk #btn-fs{display:none}
 .mapwrap.kiosk{align-items:flex-start}
 .mapwrap.kiosk #hud-mon{display:none}
 .mapwrap.kiosk #hud-log{font-size:15px;max-width:46%;bottom:calc(var(--kh,0px) + 16px)}
@@ -192,6 +192,21 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
 .topbtns .pp{font-weight:600}
 .topbtns #btn-snd[aria-pressed=true]{border-color:var(--accent);color:var(--accent)}
 @media(max-width:520px){.topbtns{width:100%}.topbtns button{flex:1 1 calc(50% - 4px);width:auto}}
+.drawer{position:fixed;top:0;right:0;height:100vh;height:100dvh;width:min(340px,92vw);z-index:70;background:var(--panel);border-left:1px solid var(--line);box-shadow:-10px 0 30px rgba(0,0,0,.45);transform:translateX(105%);visibility:hidden;transition:transform .25s ease,visibility 0s .25s;display:flex;flex-direction:column}
+.drawer.open{transform:none;visibility:visible;transition:transform .25s ease}
+.drawer .dh{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)}
+.drawer .dh h3{margin:0;font-family:var(--display);font-size:18px;font-weight:800}
+.drawer .db{overflow-y:auto;padding:10px 14px 28px;display:grid;gap:8px;align-content:start}
+.drawer .db label{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--text)}
+.drawer .db .src{margin-top:10px;font-weight:500;color:var(--accent);font-size:12px}
+@media(prefers-reduced-motion:reduce){.drawer,.drawer.open{transition:none}}
+#sea-scale{display:none;position:absolute;left:12px;top:50%;transform:translateY(-50%);z-index:1;pointer-events:none;font-size:10.5px;color:var(--muted)}
+#sea-scale.on{display:block}
+#sea-title{margin-bottom:5px;color:var(--text)}
+#sea-scale .sc{display:flex;gap:6px;height:130px}
+#sea-bar{display:block;width:12px;border-radius:6px;border:1px solid var(--line)}
+#sea-scale span{display:flex;flex-direction:column;justify-content:space-between}
+#sea-scale b{font-weight:400}
 </style>
 </head>
 <body>
@@ -217,7 +232,14 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
       <canvas id="map" aria-label="World map showing live data points"></canvas>
       <canvas id="globe" aria-hidden="true"></canvas>
       <div class="mapctl">
-        <details class="layers"><summary>Layers</summary><div class="npg">
+        <button id="btn-layers" aria-expanded="false" aria-controls="drawer">Layers</button>
+        <button id="btn-globe">Globe</button><button id="btn-fs">Full screen</button><button id="btn-kx">Exit kiosk</button>
+      </div>
+      <div class="hud"><div id="hud-top"></div><div id="hud-mon"></div><div id="hud-log"></div></div>
+      <div id="kiosk-seq"><div id="kiosk-now"></div><canvas id="kiosk-cv"></canvas></div>
+      <aside class="drawer" id="drawer" aria-label="Map layers" aria-hidden="true">
+        <div class="dh"><h3>Layers</h3><button id="dr-x">Close</button></div>
+        <div class="db">
           <span class="src">View</span>
           <label>Map <select id="view-mode"><option value="flat">Flat map</option><option value="globe">Globe</option></select></label>
           <label>Spin <input type="range" id="gl-speed" min="0" max="1000" value="400"><output id="gl-speed-o"></output></label>
@@ -240,6 +262,10 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
           <label><input type="checkbox" data-l="events"> Natural events</label>
           <label><input type="checkbox" data-l="cities"> Weather cities</label>
           <label><input type="checkbox" data-l="lightning"> Lightning</label>
+          <label><input type="checkbox" data-l="seas"> Sea gradient</label>
+          <label><input type="checkbox" data-l="flow"> Ocean current flow</label>
+          <label>Colour the seas by <select id="oc-var"><option value="speed">Current speed</option><option value="sst">Sea temperature</option><option value="wave">Wave height</option></select></label>
+          <label>Flow animation <select id="oc-flow"><option value="30000">Slow</option><option value="100000" selected>Medium</option><option value="300000">Fast</option></select></label>
           <span class="src">Transport</span>
           <label><input type="checkbox" data-l="lanes"> Shipping lanes and straits</label>
           <label><input type="checkbox" data-l="sailing"> Ships sailing the lanes</label>
@@ -249,11 +275,9 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
           <label><input type="checkbox" data-l="pulses"> Note pulses and markers</label>
           <label><input type="checkbox" data-l="people"> Births and deaths</label>
           <label><input type="checkbox" data-l="clock"> Sunrise and sunset</label>
-        </div></details>
-        <button id="btn-globe">Globe</button><button id="btn-fs">Full screen</button><button id="btn-kx">Exit kiosk</button>
-      </div>
-      <div class="hud"><div id="hud-top"></div><div id="hud-mon"></div><div id="hud-log"></div></div>
-      <div id="kiosk-seq"><div id="kiosk-now"></div><canvas id="kiosk-cv"></canvas></div>
+        </div>
+      </aside>
+      <div id="sea-scale"><div id="sea-title"></div><div class="sc"><i id="sea-bar"></i><span><b id="sea-hi"></b><b id="sea-lo"></b></span></div></div>
       <div class="pop" id="pop" hidden></div>
       <div class="maplegend">
         <span><i style="background:var(--quake)"></i>Earthquakes</span>
@@ -448,7 +472,7 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
     <p><b>Pause all</b> (top right, or the <kbd>Space</kbd> bar) silences everything at once. It sends all-notes-off, stops the loops and sequencers, and holds the controllers where they are. Data keeps updating in the background, and quakes that arrive while paused are skipped. <b>Resume</b> sends the current controller values again and restarts the loops from the beginning. A “Paused” label shows on the map, including in full screen.</p>
 
     <h3>Channels</h3>
-    <p>1 Earthquakes, 2 Space station, 3 Space weather, 4 Natural events, 5 Weather, 6 Asteroids, 7 Solar flares and CMEs, 8 Earthquakes (EMSC), 9 Solar X-rays, 10 NOAA storm scales and Aurora oval, 11 Births, 12 Deaths, 13 Lightning, 14 Planet clock, 15 Earth motion and forces and Shipping lanes, 16 Ships and Aircraft. There are only 16 MIDI channels, so some modules share one. Change any of them with the Note channel menu on its card. The test chord plays on the earthquake channel.</p>
+    <p>1 Earthquakes, 2 Space station, 3 Space weather, 4 Natural events, 5 Weather and Ocean currents, 6 Asteroids, 7 Solar flares and CMEs, 8 Earthquakes (EMSC), 9 Solar X-rays, 10 NOAA storm scales and Aurora oval, 11 Births, 12 Deaths, 13 Lightning, 14 Planet clock, 15 Earth motion and forces and Shipping lanes, 16 Ships and Aircraft. There are only 16 MIDI channels, so some modules share one. Change any of them with the Note channel menu on its card. The test chord plays on the earthquake channel.</p>
 
     <h3>Module cards</h3>
     <ul>
@@ -478,6 +502,7 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
       <li><b>Births (ch 11):</b> CC113 pulse on every birth, CC114 births per second, CC115 net growth per second.</li>
       <li><b>Deaths (ch 12):</b> CC116 pulse on every death, CC117 deaths per second.</li>
       <li><b>Lightning (ch 13):</b> CC108 strikes per second, CC109 latest strike latitude, CC118 latest strike longitude, CC119 pulse on every strike.</li>
+      <li><b>Ocean currents (ch 5):</b> CC14 average current speed, CC15 fastest current, CC16 average sea temperature, CC17 average wave height, CC18 average current heading, CC19 share of the ocean with strong currents.</li>
       <li><b>Planet clock (ch 14):</b> CC24 UTC time of day, CC25 Earth rotation angle, CC26 year progress, CC27 share of people in daylight, CC28 share of people awake.</li>
       <li><b>Earth motion and forces (ch 15):</b> CC84 orbital speed, CC85 distance from the Sun, CC86 sunlight intensity, CC87 Moon distance, CC88 Moon tide strength, CC89 spring and neap tide index, CC94 rotation speed under the Sun.</li>
       <li><b>Ships, live Baltic (ch 16):</b> CC44 ships in range, CC45 average speed, CC46 fastest ship, CC47 share under way, CC48 average heading.</li>
@@ -499,7 +524,7 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
       <li><b>Aurora oval:</b> the green to pink glow around each pole is NOAA’s live aurora forecast: the brighter and pinker, the higher the chance of visible aurora. The oval grows toward the equator in magnetic storms. Click any glowing area for the probability there. It refreshes every 5 minutes and needs an internet connection.</li>
       <li><b>Tectonic plate boundaries:</b> the orange lines mark where the Earth’s plates meet. Quakes and volcanoes cluster along them, so watch the quake dots trace them out. The lines come from the PB2002 plate model.</li>
       <li><b>Labels:</b> switch on City and strait labels in Layers to name the major cities and, with Shipping lanes on, the straits. Labels that would overlap are skipped, so full screen shows the most.</li>
-      <li><b>Layers</b> shows or hides each part of the map, in five groups. View: flat map or globe, with spin speed. Map: coastlines, grid, day, night and twilight, tectonic plate boundaries, city and strait labels (coastlines and plate boundaries need an internet connection). Sky: sun, moon, aurora oval, ISS and its ground track. Earth data: quake history, natural events, weather cities, lightning. Transport: shipping lanes and straits, ships sailing the lanes, live ships, aircraft. Live activity: note pulses and markers, births and deaths, sunrise and sunset.</li>
+      <li><b>Layers</b> opens a drawer that slides out from the right and scrolls, so every option is reachable on any screen. Close it with its Close button, the <kbd>Esc</kbd> key or by clicking elsewhere. It shows or hides each part of the map, in five groups. View: flat map or globe, with spin speed. Map: coastlines, grid, day, night and twilight, tectonic plate boundaries, city and strait labels (coastlines and plate boundaries need an internet connection). Sky: sun, moon, aurora oval, ISS and its ground track. Earth data: quake history, natural events, weather cities, lightning, sea gradient, ocean current flow. Transport: shipping lanes and straits, ships sailing the lanes, live ships, aircraft. Live activity: note pulses and markers, births and deaths, sunrise and sunset.</li>
       <li><b>Pulses and markers:</b> every note that plays on the map draws a ring and leaves a dot that fades over 8 seconds, so you can click it. Switch births and deaths or sunrise and sunset off separately if the map gets busy.</li>
       <li><b>Full screen</b> (button or <kbd>F</kbd>) gives a clean display with a live monitor and log. The cursor and buttons hide after a few seconds without movement.</li>
     </ul>
@@ -514,6 +539,16 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
 
     <h3>Aurora oval</h3>
     <p>NOAA’s OVATION model forecasts where aurora is likely for roughly the next 30 minutes, as a probability on a 1 degree grid, refreshed every 5 minutes. On the map it glows around both poles, and a click shows the probability at that spot. The Aurora module plays it as a ring: the strongest points around both poles become notes in a west to east sweep, higher nearer the pole and louder and longer where aurora is more likely. In a geomagnetic storm the oval swells toward the equator and the notes get lower and more numerous. Its controllers give the peak probability, how much of the Earth has aurora, and how far each oval reaches.</p>
+
+    <h3>Ocean currents and the sea gradient</h3>
+    <p>The seas are drawn as a colour gradient with thousands of tiny streaks showing which way the water flows. The data comes from the Open-Meteo Marine API: ocean current speed and direction, sea surface temperature and wave height. It is sampled on a grid of 540 points around the world and refreshed every 6 hours; the last update is kept so reloading the page does not use up free requests.</p>
+    <ul>
+      <li><b>Colour the seas by:</b> in the Layers drawer, choose <b>Current speed</b> (the default), <b>Sea temperature</b> or <b>Wave height</b>. The colour bar at the left of the map shows the scale. The gradient is only drawn over water, and it works on the flat map and on the globe.</li>
+      <li><b>Flow:</b> the white streaks drift along the currents. Each streak points the way the water is going, and is longer where the current is faster. <b>Flow animation</b> sets how fast they drift (the animation is far faster than the real currents, which move only a few kilometres an hour). Switch <b>Sea gradient</b> and <b>Ocean current flow</b> on or off separately in the Layers drawer.</li>
+      <li><b>Click the sea</b> for the conditions at that spot: current speed and direction, sea temperature and wave height.</li>
+      <li><b>Sound:</b> the Ocean currents card plays the 150 strongest currents as a west to east sweep: warmer water sounds higher, faster currents louder, bigger waves longer. The controllers give the average current speed, the fastest current, the average sea temperature and wave height, the average heading of the strong currents, and the share of the ocean with strong currents.</li>
+    </ul>
+    <p>Ocean data: Open-Meteo Marine API (non-commercial use), with currents and sea temperature from the Copernicus Marine Service (Mercator Ocean and Météo-France SMOC) and waves from MFWAM. The currents are a model at about 8 km resolution, not measurements, and are not suitable for navigation.</p>
 
     <h3>Planet clock</h3>
     <p>The turning of the Earth as music. A note plays at every sunrise and sunset over 34 major population centres: sunrise in the upper half of the pitch range, sunset in the lower half, bigger cities louder and longer. That is about one event every 20 minutes, and each is labelled in the monitor (for example “sunrise over Lagos”). An optional chime plays on every UTC hour. The controllers give you a smooth clock: UTC time of day and Earth’s rotation angle as repeating ramps, the year as a very slow ramp, and the share of people in daylight and awake (7am to 11pm local solar time).</p>
@@ -559,7 +594,7 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
     <p><kbd>Space</kbd> pause or resume everything, <kbd>M</kbd> built-in sound on or off, <kbd>G</kbd> globe or flat map, <kbd>K</kbd> kiosk mode, <kbd>F</kbd> full screen, <kbd>?</kbd> this help, <kbd>Esc</kbd> closes popups and full screen.</p>
 
     <h3>Data sources</h3>
-    <p>USGS and EMSC earthquakes, wheretheiss.at, NOAA space weather (solar wind, GOES X-ray and proton flux, storm scales, aurora forecast), NASA EONET, Open-Meteo, NASA NeoWs and DONKI, the World Bank (population, birth and death rates), Fintraffic Digitraffic (ships), the OpenSky Network, adsb.lol, adsb.one and airplanes.live (aircraft), Blitzortung.org (lightning) Natural Earth coastlines and the PB2002 tectonic plate boundaries (via GitHub). The planet clock and Earth motion modules are calculated on your computer from astronomical formulas and need no internet. An internet connection is needed. The only things stored are your settings and your NASA key, in this browser.</p>
+    <p>USGS and EMSC earthquakes, wheretheiss.at, NOAA space weather (solar wind, GOES X-ray and proton flux, storm scales, aurora forecast), NASA EONET, Open-Meteo, NASA NeoWs and DONKI, the World Bank (population, birth and death rates), Open-Meteo Marine (ocean currents, sea temperature, waves), Fintraffic Digitraffic (ships), the OpenSky Network, adsb.lol, adsb.one and airplanes.live (aircraft), Blitzortung.org (lightning) Natural Earth coastlines and the PB2002 tectonic plate boundaries (via GitHub). The planet clock and Earth motion modules are calculated on your computer from astronomical formulas and need no internet. An internet connection is needed. The only things stored are your settings and your NASA key, in this browser.</p>
     <p><b>NASA API key:</b> the asteroid and solar flare feeds use a shared demo key by default, which is rate-limited and refreshes every 3 hours. For faster updates (every 30 minutes), get a free key at <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>, paste it into the NASA API key box on the Asteroids or Solar flares card (Space tab) and press Enter. Both cards share the one key.</p>
 
     <h3>If something is not working</h3>
@@ -734,6 +769,12 @@ const MODS = [
     extra: `
       <div class="row ctl"><label><input type="checkbox" id="au-replay" checked> Play the oval as a loop</label></div>
       <div class="row ctl"><label>Loop length <input type="range" id="au-loop" min="10" max="120" value="40"><output id="au-loop-o">40 s</output></label></div>` },
+  { id: 'ocean', name: 'Ocean currents', src: 'Open-Meteo Marine', color: '--ocean', ch: 5, on: true,
+    cc: 'Ocean current speed and direction, with sea temperature and wave height, from the Open-Meteo Marine API. The seas are shown as a colour gradient with flowing streaks, and the strongest currents are played as a west to east sweep: sea temperature sets pitch, current speed sets loudness, wave height sets length. CC14 average current speed, CC15 fastest current, CC16 average sea temperature, CC17 average wave height, CC18 average current heading, CC19 share of the ocean with strong currents.',
+    extra: `
+      <div class="row ctl"><label><input type="checkbox" id="oc-replay" checked> Play the strongest currents as a loop</label></div>
+      <div class="row ctl"><label>Loop length <input type="range" id="oc-loop" min="10" max="120" value="45"><output id="oc-loop-o">45 s</output></label></div>
+      <div class="src">Choose what colours the seas, and the flow animation, in the Layers drawer. Updates every 6 hours. Ocean data: Open-Meteo Marine API, using Copernicus Marine Service (Mercator Ocean, Météo-France) currents and temperature and MFWAM waves.</div>` },
   { id: 'flights', name: 'Aircraft', src: 'OpenSky Network', color: '--planes', ch: 16, on: true,
     cc: 'Live aircraft from the OpenSky Network (ADS-B). Planes drift across the map between updates. The airspace is played as a west to east sweep: height sets pitch, speed sets loudness and length. CC68 aircraft in the air, CC69 average altitude, CC78 average speed, CC79 share climbing or descending.',
     extra: `
@@ -748,7 +789,7 @@ const colorOf = m => getComputedStyle(document.documentElement).getPropertyValue
 
 /* ---------- routing model ---------- */
 const KEY = 'earthmidi-v2';
-const GROUP = { quake: 'earth', events: 'earth', weather: 'earth', iss: 'space', space: 'space', neo: 'space', donki: 'space', emsc: 'earth', xray: 'space', scales: 'space', births: 'earth', deaths: 'earth', lightning: 'earth', clock: 'earth', motion: 'space', ships: 'transport', lanes: 'transport', aurora: 'space', flights: 'transport' };
+const GROUP = { quake: 'earth', events: 'earth', weather: 'earth', iss: 'space', space: 'space', neo: 'space', donki: 'space', emsc: 'earth', xray: 'space', scales: 'space', births: 'earth', deaths: 'earth', lightning: 'earth', clock: 'earth', motion: 'space', ships: 'transport', lanes: 'transport', aurora: 'space', flights: 'transport', ocean: 'earth' };
 const P = {
   quake: { mag: 'Magnitude', depth: 'Depth', lon: 'Longitude', lat: 'Latitude' },
   iss: { lat: 'Latitude', lon: 'Longitude', day: 'Daylight' },
@@ -761,6 +802,7 @@ const P = {
   xray: { flux: 'X-ray flux', cls: 'Flare class' },
   scales: { level: 'Highest scale' },
   lightning: { lat: 'Latitude', lon: 'Longitude', rand: 'Random' },
+  ocean: { speed: 'Current speed', dir: 'Current direction', temp: 'Sea temperature', wave: 'Wave height', lat: 'Latitude', lon: 'Longitude' },
   flights: { alt: 'Altitude', speed: 'Speed', lat: 'Latitude', lon: 'Longitude', climb: 'Climbing 100, descending 0' },
   aurora: { prob: 'Aurora probability', lat: 'Closeness to the pole', lon: 'Longitude', hemi: 'North 100, south 0' },
   ships: { speed: 'Speed', course: 'Heading', lat: 'Latitude', lon: 'Longitude', moving: 'Under way (100) or still (0)' },
@@ -781,6 +823,7 @@ const NP0 = {
   emsc: { pitch: 'depth', pinv: 1, vel: 'mag', dur: 'mag', pan: 'lon', span: 3, off: 1, vmin: 20, vmax: 127, dmin: 150, dmax: 3000 },
   xray: { pitch: 'flux', pinv: 0, vel: 'flux', dur: 'cls', pan: '', span: 3, off: 0, vmin: 30, vmax: 120, dmin: 150, dmax: 1500 },
   scales: { pitch: 'level', pinv: 0, vel: 'level', dur: 'level', pan: '', span: 2, off: 0, vmin: 40, vmax: 127, dmin: 400, dmax: 4000 },
+  ocean: { pitch: 'temp', pinv: 0, vel: 'speed', dur: 'wave', pan: 'lon', span: 3, off: 1, vmin: 30, vmax: 105, dmin: 800, dmax: 4000 },
   flights: { pitch: 'alt', pinv: 0, vel: 'speed', dur: 'speed', pan: 'lon', span: 3, off: 1, vmin: 30, vmax: 100, dmin: 300, dmax: 2200 },
   aurora: { pitch: 'lat', pinv: 0, vel: 'prob', dur: 'prob', pan: 'lon', span: 3, off: 1, vmin: 30, vmax: 100, dmin: 800, dmax: 4500 },
   ships: { pitch: 'lat', pinv: 0, vel: 'speed', dur: 'speed', pan: 'lon', span: 3, off: 1, vmin: 35, vmax: 110, dmin: 300, dmax: 2500 },
@@ -810,6 +853,7 @@ const STREAMS = [
   ['lightning',108,'Strikes per second'],['lightning',109,'Latest strike latitude'],['lightning',118,'Latest strike longitude'],['lightning',119,'Strike pulse'],
   ['clock',24,'UTC time of day'],['clock',25,'Earth rotation angle'],['clock',26,'Year progress'],['clock',27,'People in daylight'],['clock',28,'People awake'],
   ['motion',84,'Orbital speed'],['motion',85,'Distance from the Sun'],['motion',86,'Sunlight intensity'],['motion',87,'Moon distance'],['motion',88,'Moon tide strength'],['motion',89,'Spring and neap tide'],['motion',94,'Rotation speed under the Sun'],
+  ['ocean',14,'Average current speed'],['ocean',15,'Fastest current'],['ocean',16,'Average sea temperature'],['ocean',17,'Average wave height'],['ocean',18,'Average current heading'],['ocean',19,'Share of ocean with strong currents'],
   ['flights',68,'Aircraft in the air'],['flights',69,'Average altitude'],['flights',78,'Average speed'],['flights',79,'Share climbing or descending'],
   ['aurora',29,'Peak aurora probability'],['aurora',49,'Aurora extent'],['aurora',58,'Northern oval reach'],['aurora',59,'Southern oval reach'],
   ['ships',44,'Ships in range'],['ships',45,'Average speed'],['ships',46,'Fastest ship'],['ships',47,'Share under way'],['ships',48,'Average heading'],
@@ -1171,7 +1215,7 @@ let DW = 900, DH = 450;
 const MAP = { dayQuakes: [], events: [], pulses: [], trail: [], iss: null, strikes: [], ships: [] };
 const CITIES = [['Reykjavík',64.15,-21.94],['London',51.51,-0.13],['New York',40.71,-74.0],['São Paulo',-23.55,-46.63],
                 ['Cape Town',-33.92,18.42],['Mumbai',19.08,72.88],['Tokyo',35.68,139.69],['Sydney',-33.87,151.21]];
-let KIOSK = false, KIOSK_H = 0, kioskWake = null;
+let KIOSK = false, KIOSK_H = 0, kioskWake = null, DRAWER_OPEN = false;
 const fsEl = $('.mapwrap');
 const isFS = () => document.fullscreenElement === fsEl || fsEl.classList.contains('pfs');
 function sizeCanvas() {
@@ -1192,6 +1236,11 @@ function toggleFS() {
 }
 document.addEventListener('fullscreenchange', syncFS);
 $('#btn-fs').addEventListener('click', toggleFS);
+const drawer = $('#drawer');
+function setDrawer(o) { DRAWER_OPEN = o; drawer.classList.toggle('open', o); drawer.setAttribute('aria-hidden', String(!o)); $('#btn-layers').setAttribute('aria-expanded', String(o)); if (o) $('#dr-x').focus(); }
+$('#btn-layers').addEventListener('click', () => setDrawer(!DRAWER_OPEN));
+$('#dr-x').addEventListener('click', () => setDrawer(false));
+document.addEventListener('pointerdown', e => { if (DRAWER_OPEN && !e.target.closest('#drawer') && !e.target.closest('#btn-layers')) setDrawer(false); });
 
 /* ---------- kiosk mode: clean full-screen display, with the live sequence when the step sequencer is on ---------- */
 async function kioskLock() { try { if (KIOSK && navigator.wakeLock && !kioskWake) { kioskWake = await navigator.wakeLock.request('screen'); kioskWake.addEventListener('release', () => { kioskWake = null; }); } } catch (e) {} }
@@ -1241,13 +1290,14 @@ addEventListener('keydown', e => {
   if (e.key === 'm' || e.key === 'M') setSound(!SND.on);
   if (e.key === ' ' && document.activeElement.tagName !== 'BUTTON') { e.preventDefault(); togglePause(); }
   if (e.key === '?') $('#help').showModal();
+  if (e.key === 'Escape' && DRAWER_OPEN) { setDrawer(false); return; }
   if (e.key === 'Escape') closePop();
   if (e.key === 'Escape' && KIOSK) exitKiosk();
   else if (e.key === 'Escape' && fsEl.classList.contains('pfs')) toggleFS();
 });
 let idleT; fsEl.addEventListener('mousemove', () => { fsEl.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => fsEl.classList.add('idle'), 3000); });
 
-const LY = { land: 1, grid: 1, term: 1, quakes: 1, events: 1, cities: 1, iss: 1, track: 1, moon: 1, lightning: 1, people: 1, clock: 1, lanes: 1, sailing: 1, ships: 1, flights: 1, plates: 1, aurora: 1, labels: 0, sun: 1, pulses: 1 };
+const LY = { land: 1, grid: 1, term: 1, quakes: 1, events: 1, cities: 1, iss: 1, track: 1, moon: 1, lightning: 1, people: 1, clock: 1, lanes: 1, sailing: 1, seas: 1, flow: 1, ships: 1, flights: 1, plates: 1, aurora: 1, labels: 0, sun: 1, pulses: 1 };
 try { Object.assign(LY, JSON.parse(localStorage.getItem('earthmidi-layers'))); } catch (e) {}
 document.querySelectorAll('[data-l]').forEach(el => {
   el.checked = !!LY[el.dataset.l];
@@ -1327,6 +1377,8 @@ const onMapClick = ev => {
   if (!b) {
     const W2 = cv.clientWidth, H2 = W2 / 2, mx = mx0, my = my0;
     const lon = mx / W2 * 360 - 180, lat = 90 - my / H2 * 180;
+    const so = (LY.seas || LY.flow) && OC.ok && inOcean(lat, lon) ? oceanSample(lat, lon) : null;
+    if (so) { SEL.fn = null; return showPop(ev, 'Sea conditions', [`Current ${so.spd.toFixed(1)} km/h towards ${compass(so.dir)}`, `Sea temperature ${so.sst != null ? so.sst.toFixed(1) + ' °C' : 'not available'}`, `Waves ${so.wave != null ? so.wave.toFixed(1) + ' m' : 'not available'}`, `${lat.toFixed(1)}°, ${lon.toFixed(1)}°`, 'Open-Meteo Marine (Copernicus SMOC and MFWAM)']); }
     const a = LY.aurora && AU.ok ? AU.grid[clamp(Math.round(90 - lat), 0, 180) * 360 + ((Math.round(lon) + 180) % 360 + 360) % 360] : 0;
     if (a >= 3) { SEL.fn = null; return showPop(ev, 'Aurora forecast', [`${a}% chance of visible aurora here`, `${lat.toFixed(1)}°, ${lon.toFixed(1)}°`, 'NOAA OVATION model, for roughly the next 30 minutes']); }
     return closePop();
@@ -1385,6 +1437,7 @@ let LAND = null;
 fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson').then(r => r.json()).then(g => {
   LAND = [];
   for (const f of g.features) for (const p of (f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates)) LAND.push(p[0]);
+  if (typeof oceanRender === 'function') oceanRender();
 }).catch(() => {});
 let PLATES = null;
 fetch('https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json').then(r => r.json()).then(g => {
@@ -1452,6 +1505,8 @@ function drawFlat(W, H) {
     }
   }
   const sun = sunPoint();
+  if (LY.seas && OC.ok) { ctx.globalAlpha = .8; ctx.drawImage(OC.cv, 0, 0, W, H); ctx.globalAlpha = 1; }
+  if (LY.flow && OC.ok) oceanFlow(W, H, K);
   if (LY.plates && PLATES) {
     ctx.strokeStyle = '#ff8a5c'; ctx.globalAlpha = .4; ctx.lineWidth = 1.1 * K;
     for (const l of PLATES) {
@@ -1700,8 +1755,14 @@ $('#gl-speed').value = GL.real ? 52 : GL.s; $('#gl-rev').checked = GL.rev; spinT
 requestAnimationFrame(draw);
 
 /* ---------- data helpers ---------- */
+const hdr = (r, k) => (r.headers && typeof r.headers.get === 'function' ? r.headers.get(k) : null);
+async function fetchT(u, ms) {
+  let t;
+  try { return await Promise.race([fetch(u, { cache: 'no-store' }), new Promise((_, rej) => { t = setTimeout(() => rej(new Error('timed out')), typeof window.__fetchms === 'number' ? window.__fetchms : ms); })]); }
+  finally { clearTimeout(t); }
+}
 async function getJSON(u) {
-  const r = await fetch(u, { cache: 'no-store', signal: AbortSignal.timeout ? AbortSignal.timeout(20000) : undefined });
+  const r = await fetchT(u, 20000);
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return r.json();
 }
@@ -2710,7 +2771,7 @@ async function hubStates(base) {
   const out = new Map(); let ok = 0, bad = 0, tms = Date.now();
   for (const h of hubs) {
     try {
-      const r = await fetch(`${base}${h[0]}/${h[1]}/250`, { cache: 'no-store', signal: AbortSignal.timeout ? AbortSignal.timeout(15000) : undefined });
+      const r = await fetchT(`${base}${h[0]}/${h[1]}/250`, 15000);
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const d = await r.json(); ok++; tms = d.now || tms;
       for (const a of d.ac || []) {
@@ -2732,9 +2793,9 @@ async function flightsPoll() {
     try {
       if (i === 0) {
         const box = FL_BOX[$('#fl-region').value], q = box ? `?lamin=${box[0]}&lomin=${box[1]}&lamax=${box[2]}&lomax=${box[3]}` : '';
-        const r = await fetch('https://opensky-network.org/api/states/all' + q, { cache: 'no-store', signal: AbortSignal.timeout ? AbortSignal.timeout(30000) : undefined });
-        FL.left = r.headers.get('X-Rate-Limit-Remaining');
-        if (r.status === 429) { next = Math.min(3600e3, Math.max(60e3, (+r.headers.get('X-Rate-Limit-Retry-After-Seconds') || 1800) * 1000)); limited = true; throw new Error('HTTP 429'); }
+        const r = await fetchT('https://opensky-network.org/api/states/all' + q, 30000);
+        FL.left = hdr(r, 'X-Rate-Limit-Remaining');
+        if (r.status === 429) { next = Math.min(3600e3, Math.max(60e3, (+hdr(r, 'X-Rate-Limit-Retry-After-Seconds') || 1800) * 1000)); limited = true; throw new Error('HTTP 429'); }
         if (!r.ok) throw new Error('HTTP ' + r.status);
         const d = await r.json(), tms = (d.time || Date.now() / 1000) * 1000, states = d.states || [];
         flightsIngest(states, tms); FL.src = 0; FL.via = 'OpenSky Network'; done = true;
@@ -2785,8 +2846,146 @@ $('#fl-region').addEventListener('change', () => { try { localStorage.removeItem
 $('#fl-every').addEventListener('change', () => { FL.next = (FL.t ? Date.now() : 0) + +$('#fl-every').value * 60000; clearTimeout(FL.timer); FL.timer = setTimeout(flightsPoll, +$('#fl-every').value * 60000); });
 setInterval(flightsReadout, 10000);
 
+/* ---------- ocean currents, sea temperature and waves (Open-Meteo Marine) ---------- */
+const OC = { grid: {}, pts: [], cv: document.createElement('canvas'), ok: false, parts: [], t: 0, loop: null, running: false, alpha: null };
+OC.cv.width = 720; OC.cv.height = 360;
+const OC_LAT = Array.from({ length: 15 }, (_, i) => -70 + i * 10), OC_LON = Array.from({ length: 36 }, (_, i) => -180 + i * 10);
+const RAMP = [[0, [12, 24, 96]], [.25, [24, 120, 210]], [.5, [40, 200, 175]], [.75, [245, 225, 80]], [1, [240, 85, 60]]];
+const rampRGB = t => { t = clamp(t, 0, 1); for (let i = 1; i < RAMP.length; i++) if (t <= RAMP[i][0]) { const a = RAMP[i - 1], b = RAMP[i], f = (t - a[0]) / (b[0] - a[0]); return a[1].map((x, k) => Math.round(x + (b[1][k] - x) * f)).join(','); } return RAMP[4][1].join(','); };
+const OC_SCALE = { speed: { lo: 0, hi: 5, label: 'Current speed, km/h' }, sst: { lo: -2, hi: 32, label: 'Sea temperature, °C' }, wave: { lo: 0, hi: 6, label: 'Wave height, m' } };
+const compass = d => ['north', 'north-north-east', 'north-east', 'east-north-east', 'east', 'east-south-east', 'south-east', 'south-south-east', 'south', 'south-south-west', 'south-west', 'west-south-west', 'west', 'west-north-west', 'north-west', 'north-north-west'][Math.round(((d % 360) + 360) % 360 / 22.5) % 16];
+try { const sv = JSON.parse(localStorage.getItem('earthmidi-oceanui')); if (sv) { if (OC_SCALE[sv.v]) $('#oc-var').value = sv.v; if (sv.f) $('#oc-flow').value = sv.f; } } catch (e) {}
+function oceanScale() {
+  const v = $('#oc-var').value, sc = OC_SCALE[v], el = $('#sea-scale');
+  el.classList.toggle('on', !!(LY.seas && OC.ok));
+  $('#sea-title').textContent = sc.label; $('#sea-hi').textContent = sc.hi; $('#sea-lo').textContent = sc.lo;
+  $('#sea-bar').style.background = `linear-gradient(to top, ${RAMP.map(r => `rgb(${r[1].join(',')}) ${r[0] * 100}%`).join(', ')})`;
+}
+function oceanRender() {
+  const x = OC.cv.getContext('2d'), W = 720, H = 360, v = $('#oc-var').value, sc = OC_SCALE[v], rad = 9 * W / 360;
+  x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, W, H);
+  for (const p of OC.pts) {
+    const val = v === 'speed' ? p.spd : v === 'sst' ? p.sst : p.wave; if (val == null) continue;
+    const c = rampRGB((val - sc.lo) / (sc.hi - sc.lo)), cx = (p.lon + 180) / 360 * W, cy = (90 - p.lat) / 180 * H;
+    for (const ox of [0, -W, W]) {
+      if (cx + ox < -rad || cx + ox > W + rad) continue;
+      const g = x.createRadialGradient(cx + ox, cy, 0, cx + ox, cy, rad); g.addColorStop(0, `rgba(${c},.95)`); g.addColorStop(.6, `rgba(${c},.6)`); g.addColorStop(1, `rgba(${c},0)`);
+      x.fillStyle = g; x.beginPath(); x.arc(cx + ox, cy, rad, 0, 7); x.fill();
+    }
+  }
+  if (LAND) {
+    x.globalCompositeOperation = 'destination-out'; x.fillStyle = '#000';
+    for (const ring of LAND) { x.beginPath(); ring.forEach(([lo, la], i) => { const X = (lo + 180) / 360 * W, Y = (90 - la) / 180 * H; i ? x.lineTo(X, Y) : x.moveTo(X, Y); }); x.closePath(); x.fill(); }
+    x.globalCompositeOperation = 'source-over';
+  }
+  try { const im = x.getImageData(0, 0, W, H); OC.alpha = im && im.data ? Uint8ClampedArray.from(im.data.filter((_, i) => i % 4 === 3)) : null; } catch (e) { OC.alpha = null; }
+  oceanScale();
+}
+const inOcean = (la, lo) => !OC.alpha || OC.alpha[Math.min(359, Math.max(0, Math.floor((90 - la) / 180 * 360))) * 720 + (Math.floor((((lo + 180) % 360) + 360) % 360 / 360 * 720) % 720)] > 30;
+function oceanSample(la, lo) {
+  const gx = (((lo + 180) % 360) + 360) % 360 / 10, gy = (la + 70) / 10; if (gy < 0 || gy > 14) return null;
+  const i0 = Math.floor(gx), j0 = Math.floor(gy), fx = gx - i0, fy = gy - j0;
+  const node = (i, j) => OC.grid[(-70 + j * 10) + ',' + (-180 + (((i % 36) + 36) % 36) * 10)];
+  let u = 0, v = 0, t = 0, w = 0, wv = 0, tw = 0, ww = 0;
+  for (const [n, wt] of [[node(i0, j0), (1 - fx) * (1 - fy)], [node(i0 + 1, j0), fx * (1 - fy)], [node(i0, j0 + 1), (1 - fx) * fy], [node(i0 + 1, j0 + 1), fx * fy]]) {
+    if (!n) continue; u += n.u * wt; v += n.v * wt; w += wt;
+    if (n.sst != null) { t += n.sst * wt; tw += wt; } if (n.wave != null) { wv += n.wave * wt; ww += wt; }
+  }
+  if (w < .25) return null;
+  return { u: u / w, v: v / w, spd: Math.hypot(u, v) / w, dir: (Math.atan2(u, v) * 180 / Math.PI + 360) % 360, sst: tw ? t / tw : null, wave: ww ? wv / ww : null };
+}
+function oceanFlow(W, H, K) {
+  const t = Date.now(), dt = OC.t ? Math.min(.2, (t - OC.t) / 1000) : 0; OC.t = t; const f = +$('#oc-flow').value || 100000, R = Math.PI / 180;
+  if (!OC.parts.length) for (let i = 0; i < 900; i++) OC.parts.push({ la: 0, lo: 0, age: 1e9, life: 1 });
+  ctx.lineWidth = 1.1 * K; ctx.lineCap = 'round'; ctx.strokeStyle = '#ffffff';
+  for (const p of OC.parts) {
+    p.age += dt;
+    let s = p.age < p.life && inOcean(p.la, p.lo) ? oceanSample(p.la, p.lo) : null;
+    if (!s) {
+      const n = OC.pts[(Math.random() * OC.pts.length) | 0]; if (!n) return;
+      p.la = clamp(n.lat + (Math.random() - .5) * 10, -75, 75); p.lo = n.lon + (Math.random() - .5) * 10; p.age = 0; p.life = 3 + Math.random() * 5;
+      s = oceanSample(p.la, p.lo); if (!s) continue;
+    }
+    p.la += s.v * dt * f / 3600 / 111; p.lo += s.u * dt * f / 3600 / (111 * Math.max(.2, Math.cos(p.la * R))); p.lo = (((p.lo + 540) % 360) + 360) % 360 - 180;
+    const x = px(p.lo, W), y = py(p.la, H), len = (3 + s.spd * 5) * K, sp = s.spd || 1;
+    ctx.globalAlpha = Math.max(0, Math.min(1, p.age / .6, (p.life - p.age) / .6)) * .75;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - s.u / sp * len, y + s.v / sp * len); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+function oceanIngest(rows) {
+  const g = {}, pts = [], R = Math.PI / 180;
+  for (const r of rows) {
+    const [la, lo, spd, dir, sst, wave] = r; if (spd == null || dir == null) continue;
+    const o = { lat: la, lon: lo, spd, dir, u: spd * Math.sin(dir * R), v: spd * Math.cos(dir * R), sst, wave }; g[la + ',' + lo] = o; pts.push(o);
+  }
+  OC.grid = g; OC.pts = pts; OC.ok = pts.length > 0; OC.parts = [];
+  if (!OC.ok) return;
+  const n = pts.length, avg = k => pts.reduce((a, p) => a + (p[k] || 0), 0) / n, strong = pts.filter(p => p.spd > 2);
+  const hx = strong.reduce((a, p) => a + p.u, 0), hy = strong.reduce((a, p) => a + p.v, 0), head = strong.length ? (Math.atan2(hx, hy) * 180 / Math.PI + 360) % 360 : 0;
+  setCC('ocean', 14, s01(avg('spd'), 0, 3) * 127); setCC('ocean', 15, s01(Math.max(...pts.map(p => p.spd)), 0, 10) * 127);
+  setCC('ocean', 16, s01(avg('sst'), 0, 30) * 127); setCC('ocean', 17, s01(avg('wave'), 0, 4) * 127);
+  setCC('ocean', 18, head / 360 * 127); setCC('ocean', 19, strong.length / n * 127);
+  const top = [...pts].sort((a, b) => b.spd - a.spd)[0];
+  setRO('ocean', `${n} sea points. Average current ${avg('spd').toFixed(1)} km/h, fastest ${top.spd.toFixed(1)} km/h towards ${compass(top.dir)} (${top.lat}°, ${top.lon}°)\nAverage sea temperature ${avg('sst').toFixed(1)} °C, waves ${avg('wave').toFixed(1)} m`);
+  oceanRender();
+  if (!OC.running) oceanLoop();
+}
+async function oceanPoll() {
+  const nodes = []; for (const la of OC_LAT) for (const lo of OC_LON) nodes.push([la, lo]);
+  try {
+    const rows = [];
+    for (let k = 0; k < nodes.length; k += 90) {
+      const ch = nodes.slice(k, k + 90);
+      const d = await getJSON(`https://marine-api.open-meteo.com/v1/marine?latitude=${ch.map(n => n[0]).join(',')}&longitude=${ch.map(n => n[1]).join(',')}&current=ocean_current_velocity,ocean_current_direction,sea_surface_temperature,wave_height&cell_selection=sea&timezone=GMT`);
+      (Array.isArray(d) ? d : [d]).forEach((r, i) => {
+        const c = r && r.current, n = ch[i]; if (!c) return;
+        const dla = Math.abs((r.latitude ?? n[0]) - n[0]), dlo = Math.abs(((r.longitude ?? n[1]) - n[1] + 540) % 360 - 180);
+        if (dla > 6 || dlo > 6) return;
+        rows.push([n[0], n[1], c.ocean_current_velocity, c.ocean_current_direction, c.sea_surface_temperature, c.wave_height]);
+      });
+      await new Promise(r => setTimeout(r, 150));
+    }
+    if (!rows.length) throw new Error('no sea data returned');
+    oceanIngest(rows);
+    try { localStorage.setItem('earthmidi-ocean', JSON.stringify({ t: Date.now(), rows })); } catch (e) {}
+    setStatus('ocean', 'Live. The ocean models refresh every 6 hours.'); return 6 * 3600e3;
+  } catch (e) {
+    setStatus('ocean', (e.message === 'HTTP 429' ? 'Open-Meteo’s free request limit was reached.' : 'Could not reach Open-Meteo Marine: ' + e.message + '.') + ' Retrying in 30 minutes.', true); return 30 * 60e3;
+  }
+}
+async function oceanCycle() { clearTimeout(OC.timer); OC.timer = setTimeout(oceanCycle, await oceanPoll()); }
+function oceanBoot() {
+  try {
+    const c = JSON.parse(localStorage.getItem('earthmidi-ocean'));
+    if (c && Date.now() - c.t < 6 * 3600e3) { oceanIngest(c.rows); setStatus('ocean', 'Showing the last update from earlier, to save free requests.'); OC.timer = setTimeout(oceanCycle, 6 * 3600e3 - (Date.now() - c.t)); return; }
+  } catch (e) {}
+  oceanCycle();
+}
+function oceanLoop() {
+  clearTimeout(OC.loop);
+  if (!$('#oc-replay').checked || !byId('ocean').on || !OC.pts.length) { OC.running = false; return; }
+  OC.running = true;
+  const Lm = +$('#oc-loop').value * 1000, top = [...OC.pts].sort((a, b) => b.spd - a.spd).slice(0, 150).sort((a, b) => a.lon - b.lon);
+  top.forEach(p => {
+    const dl = (p.lon + 180) / 360 * Lm;
+    const n = fire('ocean', { speed: s01(p.spd, 0, 8), dir: p.dir / 360, temp: s01(p.sst == null ? 15 : p.sst, -2, 32), wave: s01(p.wave == null ? 1 : p.wave, 0, 6), lat: s01(p.lat, -70, 70), lon: (p.lon + 180) / 360 }, dl, `current ${p.spd.toFixed(1)} km/h towards ${compass(p.dir)}`);
+    if (n != null) pulse(p.lon, p.lat, colorOf(byId('ocean')), 5, dl);
+  });
+  OC.loop = setTimeout(oceanLoop, Lm);
+}
+const ocRestart = () => { OC.running = false; oceanLoop(); };
+$('#oc-replay').addEventListener('change', ocRestart);
+$('#oc-loop').addEventListener('input', e => { $('#oc-loop-o').textContent = e.target.value + ' s'; });
+$('#oc-loop').addEventListener('change', ocRestart);
+const ocSaveUI = () => { try { localStorage.setItem('earthmidi-oceanui', JSON.stringify({ v: $('#oc-var').value, f: $('#oc-flow').value })); } catch (e) {} };
+$('#oc-var').addEventListener('change', () => { ocSaveUI(); oceanRender(); });
+$('#oc-flow').addEventListener('change', ocSaveUI);
+document.querySelector('[data-l=seas]').addEventListener('change', oceanScale);
+oceanScale();
+
 /* ---------- enable hooks and boot ---------- */
-function onEnable(id) { if (id === 'quake') quakeLoop(); if (id === 'space') spaceLoop(false); if (id === 'neo') neoLoop(); if (id === 'donki') donkiLoop(); if (id === 'xray') xrRestart(); if (id === 'ships') shRestart(); if (id === 'aurora') auRestart(); if (id === 'flights') flRestart(); }
+function onEnable(id) { if (id === 'quake') quakeLoop(); if (id === 'space') spaceLoop(false); if (id === 'neo') neoLoop(); if (id === 'donki') donkiLoop(); if (id === 'xray') xrRestart(); if (id === 'ships') shRestart(); if (id === 'aurora') auRestart(); if (id === 'flights') flRestart(); if (id === 'ocean') ocRestart(); }
 
 initMidi();
 const tabBtns = [...document.querySelectorAll('.tabs button')];
@@ -2865,7 +3064,7 @@ every(vitalPoll, 21600000); vitalSched('b'); vitalSched('d'); setInterval(vitalT
 setInterval(lightWatch, 1000); setInterval(lightTick, 40); every(lightReadout, 1000);
 every(clockTick, 1000); every(motionTick, 1000);
 every(shipsPoll, 60000); CHOKE.forEach((_, i) => lanesSched(i)); setInterval(lanesTick, 40); every(lanesReadout, 1000); every(auroraPoll, 300000);
-flightsBoot(); setInterval(kioskDraw, 500); if (location.hash === '#kiosk') enterKiosk(false);
+flightsBoot(); oceanBoot(); setInterval(kioskDraw, 500); if (location.hash === '#kiosk') enterKiosk(false);
 every(() => { const sp = sunPoint(); setCC('space', 36, s01(sp.lon, -180, 180) * 127); setCC('space', 37, s01(sp.lat, -23.5, 23.5) * 127); const mp = moonPoint(); setCC('space', 38, (1 - Math.cos(2 * Math.PI * moonPhase())) / 2 * 127); setCC('space', 39, s01(mp.lon, -180, 180) * 127); }, 5000);
 setInterval(() => {
   if (!fsEl.classList.contains('fs')) return;
