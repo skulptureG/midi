@@ -207,6 +207,24 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
 #sea-bar{display:block;width:12px;border-radius:6px;border:1px solid var(--line)}
 #sea-scale span{display:flex;flex-direction:column;justify-content:space-between}
 #sea-scale b{font-weight:400}
+.health{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:-6px}
+.hsum{font-size:12px;color:var(--text);margin-right:4px;white-space:nowrap}
+.hsum.ok{color:#6ee7b7}.hsum.slow{color:#ffd166}.hsum.down{color:#ff8f73}
+.hitems{display:flex;flex-wrap:wrap;gap:5px}
+.hi{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:2px 10px 2px 8px;font:11px var(--mono);color:var(--muted);cursor:pointer}
+.hi i,.hd{display:inline-block;width:8px;height:8px;border-radius:50%;background:#5b6b82;flex:none}
+.hi small{font-size:10px;opacity:.8}
+.hs-live i,.hd.hs-live{background:#6ee7b7}.hs-slow i,.hd.hs-slow{background:#ffd166}.hs-down i,.hd.hs-down{background:#ff7a59}.hs-wait i,.hd.hs-wait{background:#8397b3}.hs-off i,.hd.hs-off{background:#3c485b}
+.hs-slow,.hs-down{color:var(--text)}
+.hs-off{opacity:.6}
+.hdt{flex-basis:100%;font-size:12px;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+#hk{display:none;position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:2;pointer-events:none;align-items:center;gap:8px;font-size:11px;color:var(--text);background:var(--strip,rgba(8,13,26,.9));border:1px solid var(--line);border-radius:999px;padding:4px 12px}
+.mapwrap.fs #hk{display:flex}
+#hk-dots{display:inline-flex;gap:4px}
+@media(max-width:700px){.hi span{max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+.hx{margin-left:auto;padding:2px 10px;font-size:11px;border-radius:999px}
+html.nofeedstrip #health{display:none}
+html.nofeedbar #hk{display:none!important}
 </style>
 </head>
 <body>
@@ -227,6 +245,12 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
     <button role="tab" data-t="space" aria-selected="false">Space<small>ISS, orbit and forces, aurora, solar wind, X-rays, storms, asteroids, flares</small></button>
     <button role="tab" data-t="transport" aria-selected="false">Transport<small>ships, aircraft and shipping lanes</small></button>
   </nav>
+  <div class="health" id="health" aria-label="Data feed status">
+    <span class="hsum" id="health-sum" role="status"></span>
+    <div class="hitems" id="health-items"></div>
+    <button id="health-x" class="hx" title="Hide the feed strip. Turn it back on in the Layers drawer, under Interface.">Hide</button>
+    <div class="hdt" id="health-detail" hidden></div>
+  </div>
   <main>
     <div class="panel mapwrap">
       <canvas id="map" aria-label="World map showing live data points"></canvas>
@@ -236,6 +260,7 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
         <button id="btn-globe">Globe</button><button id="btn-fs">Full screen</button><button id="btn-kx">Exit kiosk</button>
       </div>
       <div class="hud"><div id="hud-top"></div><div id="hud-mon"></div><div id="hud-log"></div></div>
+      <div id="hk"><span id="hk-sum"></span><span id="hk-dots"></span></div>
       <div id="kiosk-seq"><div id="kiosk-now"></div><canvas id="kiosk-cv"></canvas></div>
       <aside class="drawer" id="drawer" aria-label="Map layers" aria-hidden="true">
         <div class="dh"><h3>Layers</h3><button id="dr-x">Close</button></div>
@@ -245,6 +270,9 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
           <label>Spin <input type="range" id="gl-speed" min="0" max="1000" value="400"><output id="gl-speed-o"></output></label>
           <div class="btns"><button id="gl-real" type="button">Real time</button><label class="chip"><input type="checkbox" id="gl-rev"><span>Reverse</span></label></div>
           <span class="src" id="gl-note"></span>
+          <span class="src">Interface</span>
+          <label><input type="checkbox" id="hs-strip"> Feed health strip under the tabs</label>
+          <label><input type="checkbox" id="hs-bar"> Feed bar in full screen and kiosk</label>
           <span class="src">Map</span>
           <label><input type="checkbox" data-l="land"> Coastlines</label>
           <label><input type="checkbox" data-l="grid"> Grid</label>
@@ -441,6 +469,7 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
       <li><b>MIDI output:</b> connect, choose the port, send a test chord, or Panic to clear stuck notes. The built-in sound controls (sound, volume, reverb) are here too.</li>
       <li><b>CV output:</b> optional control voltage for modular gear (see CV output below).</li>
       <li><b>Musical settings:</b> key, scale, lowest octave and note length for every module.</li>
+      <li><b>Feed health:</b> the pills under the tabs show which live feeds are up.</li>
       <li><b>Activity:</b> a log of events as they happen. <b>MIDI monitor:</b> every message sent, with filters.</li>
     </ul>
 
@@ -467,6 +496,16 @@ input[type=color]{width:46px;height:28px;padding:0;border:1px solid var(--line);
 
     <h3>Themes</h3>
     <p>The <b>Theme</b> panel in the side column changes the look of the whole page, including the map and the kiosk display. Choose <b>Deep sea</b> (the default dark blue), <b>Forest green</b> or <b>Earth</b>, a natural brown. <b>Custom colours</b> lets you pick four colours yourself: the background, the panels, the text and the accent (used for buttons, links and highlights). The page works out the borders, softer text and map colour from those. If the text and panel colours are too close, a warning says so. Your choice is remembered, and Reset puts the custom colours back to their starting values. The data colours, such as the ones for quakes and the ISS, stay the same in every theme so they remain easy to tell apart.</p>
+
+    <h3>Feed health</h3>
+    <p>The row of coloured pills under the tabs shows whether each live data source is working, with how long ago it last updated. A summary beside it reads, for example, “14 of 16 feeds live”.</p>
+    <ul>
+      <li><b>Green, live:</b> the feed answered recently, within about twice its normal update time.</li>
+      <li><b>Amber, slow:</b> it has not updated for a while, or the last attempt failed but there is recent data still on screen.</li>
+      <li><b>Red, down:</b> the feed has failed and there has been nothing good for several update cycles.</li>
+      <li><b>Grey:</b> either starting up, or switched off with the module’s On switch (switched-off sources are not counted).</li>
+    </ul>
+    <p>Click a pill to read that feed’s latest message and when it last worked. <b>Hide</b> at the right of the row turns the strip off, and you can turn it on or off at any time in the Layers drawer under <b>Interface</b>, where the full-screen bar has its own switch. Your choice is remembered. In full screen and in kiosk mode the row is replaced by a small bar at the top of the map with one dot per feed and the same summary, so an unattended screen shows at a glance if something has dropped out. Calculated sources, like the planet clock and the sun and moon, never depend on the internet and so are not listed.</p>
 
     <h3>Pause and resume</h3>
     <p><b>Pause all</b> (top right, or the <kbd>Space</kbd> bar) silences everything at once. It sends all-notes-off, stops the loops and sequencers, and holds the controllers where they are. Data keeps updating in the background, and quakes that arrive while paused are skipped. <b>Resume</b> sends the current controller values again and restarts the loops from the beginning. A “Paused” label shows on the map, including in full screen.</p>
@@ -922,7 +961,12 @@ for (const m of MODS) {
   $('#ch-' + m.id).addEventListener('change', e => { m.ch = +e.target.value; resendAll(); persist(); });
 }
 const setRO = (id, t) => { $('#ro-' + id).textContent = t; };
-const setStatus = (id, t, err) => { const e = $('#st-' + id); e.textContent = t; e.classList.toggle('err', !!err); };
+const HEALTH = {}, HSTART = Date.now();
+function healthNote(id, text, err) {
+  const h = (HEALTH[id] ||= { ok: 0, bad: false, msg: '' }); h.msg = text;
+  if (err) h.bad = true; else if (!/^(Starting|Off|Connecting|Key )/.test(text)) { h.ok = Date.now(); h.bad = false; }
+}
+const setStatus = (id, t, err) => { const e = $('#st-' + id); e.textContent = t; e.classList.toggle('err', !!err); healthNote(id, t, !!err); };
 function flash(id, delay = 0) {
   setTimeout(() => {
     const d = $('#dot-' + id); d.classList.add('hit');
@@ -2983,6 +3027,57 @@ $('#oc-var').addEventListener('change', () => { ocSaveUI(); oceanRender(); });
 $('#oc-flow').addEventListener('change', ocSaveUI);
 document.querySelector('[data-l=seas]').addEventListener('change', oceanScale);
 oceanScale();
+
+/* ---------- feed health strip ---------- */
+const HSRC = [['quake', 'Quakes (USGS)', 'poll', () => 30e3], ['emsc', 'Quakes (EMSC)', 'push'], ['events', 'Natural events', 'poll', () => 600e3], ['weather', 'Weather', 'poll', () => 600e3],
+  ['ocean', 'Oceans', 'poll', () => 6 * 3600e3], ['lightning', 'Lightning', 'push'], ['births', 'Population rates', 'poll', () => 6 * 3600e3],
+  ['iss', 'ISS', 'poll', () => 5e3], ['space', 'Solar wind', 'poll', () => 60e3], ['xray', 'X-rays', 'poll', () => 60e3], ['scales', 'Storm scales', 'poll', () => 60e3],
+  ['aurora', 'Aurora', 'poll', () => 300e3], ['neo', 'Asteroids', 'poll', () => nasaWait()], ['donki', 'Flares and CMEs', 'poll', () => nasaWait()],
+  ['flights', 'Aircraft', 'poll', () => (FL.via === 'OpenSky Network' ? +$('#fl-every').value * 60e3 : 4 * 60e3)], ['ships', 'Ships', 'poll', () => 60e3]];
+function healthState(src) {
+  const [id, , type, ex] = src, m = byId(id), h = HEALTH[id] || {}, now = Date.now(), age = h.ok ? now - h.ok : Infinity;
+  if (m && !m.on) return { s: 'off', age };
+  if (type === 'push') return h.bad ? { s: 'down', age } : h.ok ? { s: 'live', age } : { s: 'wait', age };
+  const e = ex();
+  if (h.bad) return age > e * 3 + 30e3 ? { s: 'down', age } : { s: 'slow', age };
+  if (!h.ok) return now - HSTART < 90e3 ? { s: 'wait', age } : { s: 'down', age };
+  return age <= e * 2.5 + 15e3 ? { s: 'live', age } : age <= e * 6 + 30e3 ? { s: 'slow', age } : { s: 'down', age };
+}
+const hAgo = ms => !isFinite(ms) ? 'never' : ms < 60e3 ? Math.max(0, Math.round(ms / 1000)) + ' s' : ms < 5400e3 ? Math.round(ms / 60e3) + ' min' : (ms / 3600e3).toFixed(1) + ' h';
+const HWORD = { live: 'Live', slow: 'Slow', down: 'Down', wait: 'Starting', off: 'Off' };
+let healthPick = null;
+(() => {
+  $('#health-items').innerHTML = HSRC.map(x => `<button class="hi hs-wait" id="hl-${x[0]}" data-id="${x[0]}"><i></i><span>${x[1]}</span><small></small></button>`).join('');
+  $('#hk-dots').innerHTML = HSRC.map(x => `<span class="hd hs-wait" id="hk-${x[0]}" title="${x[1]}"></span>`).join('');
+  $('#health-items').addEventListener('click', e => { const b = e.target.closest('.hi'); if (!b) return; healthPick = healthPick === b.dataset.id ? null : b.dataset.id; healthRender(); });
+})();
+function healthRender() {
+  let live = 0, on = 0, slow = 0, down = 0;
+  for (const x of HSRC) {
+    const st = healthState(x), id = x[0], el = $('#hl-' + id), dot = $('#hk-' + id);
+    if (st.s !== 'off') { on++; if (st.s === 'live') live++; else if (st.s === 'slow') slow++; else if (st.s === 'down') down++; }
+    const cls = 'hs-' + st.s, txt = st.s === 'live' || st.s === 'slow' ? hAgo(st.age) : HWORD[st.s].toLowerCase();
+    if (el.dataset.cls !== cls + txt) { el.className = 'hi ' + cls; el.querySelector('small').textContent = txt; el.dataset.cls = cls + txt; el.title = `${x[1]}: ${HWORD[st.s]}${isFinite(st.age) ? ', last update ' + hAgo(st.age) + ' ago' : ''}`; }
+    if (dot.dataset.cls !== cls) { dot.className = 'hd ' + cls; dot.dataset.cls = cls; dot.title = `${x[1]}: ${HWORD[st.s]}`; }
+  }
+  const sum = `${live} of ${on} feeds live` + (down ? `, ${down} down` : '') + (slow ? `, ${slow} slow` : ''), cls = down ? 'down' : slow ? 'slow' : 'ok';
+  const hs = $('#health-sum'); if (hs.textContent !== sum) { hs.textContent = sum; hs.className = 'hsum ' + cls; }
+  $('#hk-sum').textContent = sum;
+  const dt = $('#health-detail'), pk = healthPick && HSRC.find(x => x[0] === healthPick);
+  if (pk) { const st = healthState(pk); dt.hidden = false; dt.textContent = `${pk[1]}: ${HWORD[st.s]}. ${(HEALTH[pk[0]] || {}).msg || 'No message yet.'}${isFinite(st.age) ? ' Last good update ' + hAgo(st.age) + ' ago.' : ''}`; } else dt.hidden = true;
+}
+setTimeout(healthRender, 0); setInterval(healthRender, 1000);
+const HV = { strip: true, bar: true };
+try { const sv = JSON.parse(localStorage.getItem('earthmidi-feedui')); if (sv) { HV.strip = sv.strip !== false; HV.bar = sv.bar !== false; } } catch (e) {}
+function healthUI(save) {
+  document.documentElement.classList.toggle('nofeedstrip', !HV.strip); document.documentElement.classList.toggle('nofeedbar', !HV.bar);
+  $('#hs-strip').checked = HV.strip; $('#hs-bar').checked = HV.bar;
+  if (save) try { localStorage.setItem('earthmidi-feedui', JSON.stringify(HV)); } catch (e) {}
+}
+$('#hs-strip').addEventListener('change', e => { HV.strip = e.target.checked; healthUI(true); });
+$('#hs-bar').addEventListener('change', e => { HV.bar = e.target.checked; healthUI(true); });
+$('#health-x').addEventListener('click', () => { HV.strip = false; healthUI(true); });
+healthUI(false);
 
 /* ---------- enable hooks and boot ---------- */
 function onEnable(id) { if (id === 'quake') quakeLoop(); if (id === 'space') spaceLoop(false); if (id === 'neo') neoLoop(); if (id === 'donki') donkiLoop(); if (id === 'xray') xrRestart(); if (id === 'ships') shRestart(); if (id === 'aurora') auRestart(); if (id === 'flights') flRestart(); if (id === 'ocean') ocRestart(); }
